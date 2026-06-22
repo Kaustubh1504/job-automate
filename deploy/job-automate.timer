@@ -1,0 +1,18 @@
+[Unit]
+Description=Run the job poller hourly, 25-35 min past the hour (randomized)
+
+[Timer]
+# Base fire time: :25 past every hour. Configurable -- e.g. every 2h: *-*-* 0/2:25:00,
+# or daily: *-*-* 09:25:00. Keep the base minute and the delay below in sync.
+OnCalendar=*-*-* *:25:00
+# RandomizedDelaySec adds [0, 600s] ON TOP of the :25 base, so the actual run
+# lands in the 25-35 min window past the hour (RandomizedDelaySec alone is [0, X],
+# hence the :25 base offset). One timer covers BOTH github repos and jobhive,
+# since run.py runs them in a single process.
+RandomizedDelaySec=600
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate.service
+
+[Install]
+WantedBy=timers.target

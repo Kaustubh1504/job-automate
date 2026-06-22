@@ -12,7 +12,9 @@ Company list and filter live at the project root:
     config/keywords.json  -- include/exclude title terms (optional)
 """
 
+import random
 import sys
+import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
 
 from jobhive.scrapers import get_scraper
@@ -22,6 +24,7 @@ from collectors.base import register
 from listing import Listing
 
 MAX_WORKERS = 8
+JITTER_RANGE = (1.0, 5.0)   # seconds; randomized pause before each company scrape
 
 
 def _load_targets():
@@ -76,6 +79,12 @@ def _to_listing(job):
 
 
 def _scrape(target, include, exclude):
+    # Randomized jitter so we don't hit every ATS in lockstep (politeness +
+    # lighter bot-detection footprint). jobhive's scrapers already back off on
+    # 429/Retry-After per request, so we only add the inter-company jitter.
+    delay = random.uniform(*JITTER_RANGE)
+    print(f"[jobhive] sleeping {delay:.1f}s before {target['ats']}:{target['slug']}", file=sys.stderr)
+    time.sleep(delay)
     jobs = get_scraper(target["ats"], target["slug"]).fetch()
     return [_to_listing(j) for j in jobs if _wanted(j.title, include, exclude)]
 
