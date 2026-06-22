@@ -12,32 +12,25 @@ Company list and filter live at the project root:
     config/keywords.json  -- include/exclude title terms (optional)
 """
 
-import json
 import sys
 from concurrent.futures import ThreadPoolExecutor, as_completed
-from pathlib import Path
 
 from jobhive.scrapers import get_scraper
 
+import config_store
 from collectors.base import register
 from listing import Listing
 
-ROOT = Path(__file__).resolve().parents[2]          # job-automate/
-TARGETS_FILE = ROOT / "config" / "targets.json"
-KEYWORDS_FILE = ROOT / "config" / "keywords.json"
 MAX_WORKERS = 8
 
 
 def _load_targets():
-    data = json.loads(TARGETS_FILE.read_text())
-    return [t for t in data["targets"] if t.get("ats") and t.get("slug")]
+    return config_store.targets()
 
 
 def _load_filter():
-    if not KEYWORDS_FILE.exists():
-        return [], []
-    cfg = json.loads(KEYWORDS_FILE.read_text())
-    return [w.lower() for w in cfg.get("include", [])], [w.lower() for w in cfg.get("exclude", [])]
+    include, exclude = config_store.keywords()
+    return [w.lower() for w in include], [w.lower() for w in exclude]
 
 
 def _wanted(title, include, exclude):

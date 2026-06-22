@@ -5,16 +5,14 @@ A listing is flagged priority when EITHER:
   - its company is in the allowlist (FAANG+/Quant and any other referral targets).
 
 The OR is deliberate: a known-company listing with no salary data still flags.
-Config (threshold + allowlist) lives in config/priority.json. Reach for an LLM
-only as a last-resort gap-filler for "is this unknown company established?" --
-that does not belong here.
+Config (threshold + allowlist) comes from config_store (Supabase, JSON fallback)
+and is loaded lazily and cached per process. Reach for an LLM only as a
+last-resort gap-filler for "is this unknown company established?" -- not here.
 """
 
-import json
 import re
-from pathlib import Path
 
-_CONFIG = Path(__file__).resolve().parents[1] / "config" / "priority.json"
+import config_store
 
 
 def _norm(name):
@@ -22,17 +20,19 @@ def _norm(name):
     return re.sub(r"[^a-z0-9]", "", (name or "").lower())
 
 
-def _load():
-    cfg = json.loads(_CONFIG.read_text())
-    annual_threshold = cfg.get("hourly_threshold", 0) * 2080
-    allowlist = {_norm(c) for c in cfg.get("allowlist", [])}
-    return annual_threshold, allowlist
+_cache = None
 
 
-_ANNUAL_THRESHOLD, _ALLOWLIST = _load()
+def _config():
+    global _cache
+    if _cache is None:
+        hourly, allowlist = config_store.priority()
+        _cache = (hourly * 2080, {_norm(c) for c in allowlist})
+    return _cache
 
 
 def is_priority(listing):
-    if listing.annual_salary is not None and listing.annual_salary >= _ANNUAL_THRESHOLD:
+    annual_threshold, allowlist = _config()
+    if listing.annual_salary is not None and listing.annual_salary >= annual_threshold:
         return True
-    return _norm(listing.company) in _ALLOWLIST
+    return _norm(listing.company) in allowlist
