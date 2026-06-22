@@ -52,6 +52,18 @@ export default function JobsPage() {
     }
   }
 
+  // Permanent: deletes the row from Supabase. The poller won't re-add it
+  // (it's already in state.json's seen set), so it stays gone.
+  async function remove(job) {
+    if (!window.confirm(`Delete "${job.title}" at ${job.company}? This can't be undone.`)) return;
+    setJobs((js) => js.filter((j) => j.id !== job.id));
+    const { error } = await supabase.from('jobs').delete().eq('id', job.id);
+    if (error) {
+      setError(error.message);
+      load(); // re-sync on failure (e.g. RLS blocked the delete)
+    }
+  }
+
   const visible = hideApplied ? jobs.filter((j) => !j.applied) : jobs;
 
   return (
@@ -100,6 +112,7 @@ export default function JobsPage() {
               <th className="px-3 py-2">Apply</th>
               <th className="px-3 py-2 text-center">Applied</th>
               <th className="px-3 py-2 text-center">Referral</th>
+              <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>
           <tbody>
@@ -128,10 +141,13 @@ export default function JobsPage() {
                 <td className="px-3 py-2 text-center">
                   <input type="checkbox" checked={!!j.referred} onChange={() => toggle(j, 'referred')} />
                 </td>
+                <td className="px-3 py-2 text-center">
+                  <button onClick={() => remove(j)} title="Delete from table" className="text-gray-400 hover:text-red-600">✕</button>
+                </td>
               </tr>
             ))}
             {!loading && visible.length === 0 && (
-              <tr><td colSpan={9} className="px-3 py-6 text-center text-gray-500">No jobs match these filters.</td></tr>
+              <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">No jobs match these filters.</td></tr>
             )}
           </tbody>
         </table>
