@@ -1,0 +1,13 @@
+{
+  "_comment": "Deterministic priority/referral tag. A listing is flagged priority when its annualized USD salary >= hourly_threshold*2080, OR its company is in allowlist. Company match is case/punctuation-insensitive (e.g. 'Jane Street' == 'janestreet'). allowlist folds together the FAANG+/Quant tiers and any other companies worth a referral. Edit freely.",
+  "hourly_threshold": 40,
+  "allowlist": [
+    "Google", "Meta", "Apple", "Amazon", "Microsoft", "Netflix", "Nvidia", "Tesla",
+    "OpenAI", "Anthropic", "Databricks", "Stripe", "Airbnb", "Uber", "LinkedIn",
+    "Salesforce", "Adobe", "Snowflake", "Datadog", "Coinbase", "Pinterest", "Reddit",
+    "Figma", "Notion", "Ramp", "Plaid", "Roblox", "DoorDash", "Palantir", "Scale AI",
+    "Jane Street", "Citadel", "Citadel Securities", "Two Sigma", "Hudson River Trading",
+    "Jump Trading", "DE Shaw", "Optiver", "IMC", "DRW", "Five Rings", "Akuna Capital",
+    "Susquehanna", "SIG", "Point72", "Millennium", "Radix Trading", "Jane Street Capital"
+  ]
+}

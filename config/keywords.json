@@ -1,0 +1,18 @@
+{
+  "_comment": "Title keyword filter for jobhive ATS results (a company's ATS returns ALL roles). Case-insensitive substring match on the job TITLE only. A job is kept if it matches any 'include' term AND no 'exclude' term. Empty 'include' = keep everything. Edit freely to match the roles you want.",
+  "include": [
+    "software engineer", "software developer", "swe", "backend", "back end",
+    "frontend", "front end", "full stack", "fullstack", "web developer",
+    "machine learning", "ml engineer", "data engineer", "data scientist",
+    "ai engineer", "applied scientist", "research engineer", "research scientist",
+    "platform engineer", "infrastructure engineer", "systems engineer",
+    "security engineer", "mobile engineer", "android engineer", "ios engineer",
+    "site reliability", "devops",
+    "intern", "new grad", "new graduate", "early career", "university graduate",
+    "entry level", "associate engineer"
+  ],
+  "exclude": [
+    "senior", "staff", "principal", "director", "vice president", "head of",
+    "manager", "distinguished"
+  ]
+}
