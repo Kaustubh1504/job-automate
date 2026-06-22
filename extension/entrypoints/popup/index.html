@@ -1,0 +1,19 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Job Collector</title>
+    <style>
+      body { font: 13px system-ui, sans-serif; padding: 12px; width: 280px; margin: 0; }
+      button { padding: 6px 12px; cursor: pointer; }
+      #status { margin: 8px 0; color: #555; }
+      pre { white-space: pre-wrap; background: #f4f4f5; padding: 8px; border-radius: 6px; max-height: 240px; overflow: auto; }
+    </style>
+  </head>
+  <body>
+    <button id="run">Run now</button>
+    <div id="status"></div>
+    <pre id="out"></pre>
+    <script type="module" src="./main.ts"></script>
+  </body>
+</html>
