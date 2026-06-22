@@ -20,7 +20,6 @@ Env: SUPABASE_URL, SUPABASE_KEY (a key with insert rights on `jobs`).
 import requests
 
 from canonical import canonicalize
-from classify import is_priority
 
 
 class SupabaseStore:
@@ -42,7 +41,7 @@ class SupabaseStore:
             "location": ", ".join(l.locations) or None,
             "apply_url": l.url,
             "source": l.source,
-            "priority": is_priority(l),
+            "priority": l.priority,
         }
 
     def save(self, listings):

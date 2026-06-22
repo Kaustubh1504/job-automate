@@ -19,6 +19,7 @@ class Listing:
     source: str = ""            # e.g. "simplify-intern"  (stamped by engine)
     role_type: str = ""         # "intern" | "newgrad"     (stamped by engine)
     annual_salary: float | None = None   # USD/yr when a source exposes pay (jobhive)
+    priority: bool = False                # referral/priority tag (classify.is_priority)
 
     def display(self):
         loc = ", ".join(self.locations) or "\u2014"

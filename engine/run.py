@@ -15,6 +15,7 @@ Requires: the project venv (requests, python-dotenv, jobhive-py).
 Env: GITHUB_TOKEN, loaded from a .env file via find_dotenv().
 """
 
+import dataclasses
 import os
 import sys
 from pathlib import Path
@@ -30,6 +31,7 @@ import parsers  # noqa: E402,F401  (importing registers every parser)
 import collectors  # noqa: E402,F401  (importing registers every collector)
 from notifiers.base import get_notifier  # noqa: E402
 from poller import poll_all  # noqa: E402
+from classify import is_priority  # noqa: E402
 from store import SupabaseStore  # noqa: E402
 
 load_dotenv(find_dotenv())
@@ -60,6 +62,8 @@ def main():
         sys.exit("GITHUB_TOKEN not set")
 
     new = list(poll_all(SOURCES, STATE_FILE, token))
+    # Tag the priority flag once so the store and the Discord summary share it.
+    new = [dataclasses.replace(l, priority=is_priority(l)) for l in new]
 
     # Always log to stdout (the cron log keeps the history); also push to Discord
     # if a webhook is configured. A notify failure must not lose the run.
