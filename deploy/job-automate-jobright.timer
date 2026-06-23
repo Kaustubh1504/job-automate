@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the jobright scraper every 30 min, at :10/:40 +0-5 min (randomized)
+
+[Timer]
+# Base fire times: minute 10 and 40 of every hour (every 30 min) -- offset from
+# the main poller (:25-:35) so the two don't run together.
+OnCalendar=*-*-* *:10/30:00
+# RandomizedDelaySec adds [0, 300s] on top, so runs land in the :10-:15 and
+# :40-:45 windows.
+RandomizedDelaySec=300
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate-jobright.service
+
+[Install]
+WantedBy=timers.target

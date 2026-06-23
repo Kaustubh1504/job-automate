@@ -1,0 +1,19 @@
+[Unit]
+Description=Jobright intern scraper (H1B + paid filter -> jobright_jobs + Discord)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/jobright.py
+# Two HTTP GETs + a Supabase upsert; fast, but allow margin for slow network.
+TimeoutStartSec=180
+
+# No [Install]: triggered by job-automate-jobright.timer (and runnable on demand
+# with `systemctl start job-automate-jobright.service`). jobright.py stays
+# runnable manually too. Intentionally SEPARATE from job-automate.service --
+# different table, different pipeline.
