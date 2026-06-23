@@ -1,21 +1,16 @@
 'use client';
 
 import { useCallback, useEffect, useState } from 'react';
-import { supabase } from '../lib/supabase';
-import JobrightView from './jobright/JobrightView';
+import { supabase } from '../../lib/supabase';
 
+// Shared jobright view, reused by the /jobright route and the "Jobright Interns"
+// tab on the Jobs page. jobright has its own table and its own H1B column, so it
+// renders separately rather than merging into the main jobs table.
 const SINCE = [
   { label: 'Last 24h', hours: 24 },
   { label: 'Last 7 days', hours: 168 },
   { label: 'Last 30 days', hours: 720 },
   { label: 'All time', hours: null },
-];
-
-const TABS = [
-  { key: 'all', label: 'All' },
-  { key: 'intern', label: 'Intern' },
-  { key: 'jobright', label: 'Jobright Interns' }, // separate table; rendered by JobrightPage
-  { key: 'newgrad', label: 'New Grad' },
 ];
 
 const TWO_HOURS = 2 * 3600 * 1000;
@@ -24,35 +19,19 @@ function isNew(job) {
   return job.posted_at && Date.now() - new Date(job.posted_at).getTime() < TWO_HOURS;
 }
 
-const INTERN_RE = /\bintern(ship)?\b/i;
-const NEWGRAD_RE = /\b(new\s?grad(uate)?|early\s?career|entry[-\s]?level|university\s?grad(uate)?|associate engineer)\b/i;
-
-// Bucket a job into intern / newgrad / other. The repo sources encode the role
-// in their name (authoritative); jobhive/live only reveal it via the title.
-function roleOf(job) {
-  const src = (job.source || '').toLowerCase();
-  if (src.includes('intern')) return 'intern';
-  if (src.includes('newgrad')) return 'newgrad';
-  const t = job.title || '';
-  if (INTERN_RE.test(t)) return 'intern';
-  if (NEWGRAD_RE.test(t)) return 'newgrad';
-  return 'other';
-}
-
-export default function JobsPage() {
+export default function JobrightView() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sinceHours, setSinceHours] = useState(168);
   const [hideApplied, setHideApplied] = useState(true);
-  const [priorityOnly, setPriorityOnly] = useState(false);
-  const [tab, setTab] = useState('all');
+  const [hideUnsure, setHideUnsure] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     let q = supabase
-      .from('jobs')
+      .from('jobright_jobs')
       .select('*')
       .order('first_seen', { ascending: false })
       .limit(2000);
@@ -60,80 +39,44 @@ export default function JobsPage() {
       const since = new Date(Date.now() - sinceHours * 3600 * 1000).toISOString();
       q = q.gte('first_seen', since);
     }
-    if (priorityOnly) q = q.eq('priority', true);
+    if (hideUnsure) q = q.eq('h1b_sponsored', 'Yes');
     const { data, error } = await q;
     if (error) setError(error.message);
     setJobs(data || []);
     setLoading(false);
-  }, [sinceHours, priorityOnly]);
+  }, [sinceHours, hideUnsure]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Optimistic toggle for the applied / referred ticks.
   async function toggle(job, field) {
     const value = !job[field];
     setJobs((js) => js.map((j) => (j.id === job.id ? { ...j, [field]: value } : j)));
-    const { error } = await supabase.from('jobs').update({ [field]: value }).eq('id', job.id);
+    const { error } = await supabase.from('jobright_jobs').update({ [field]: value }).eq('id', job.id);
     if (error) {
       setError(error.message);
-      load(); // re-sync on failure
+      load();
     }
   }
 
-  // Permanent: deletes the row from Supabase. The poller won't re-add it
-  // (it's already in state.json's seen set), so it stays gone.
   async function remove(job) {
     if (!window.confirm(`Delete "${job.title}" at ${job.company}? This can't be undone.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
-    const { error } = await supabase.from('jobs').delete().eq('id', job.id);
+    const { error } = await supabase.from('jobright_jobs').delete().eq('id', job.id);
     if (error) {
       setError(error.message);
-      load(); // re-sync on failure (e.g. RLS blocked the delete)
+      load();
     }
   }
 
-  // Counts per tab (over the loaded set, before the applied filter).
-  const counts = jobs.reduce(
-    (acc, j) => {
-      acc.all += 1;
-      const r = roleOf(j);
-      if (r === 'intern' || r === 'newgrad') acc[r] += 1;
-      return acc;
-    },
-    { all: 0, intern: 0, newgrad: 0 }
-  );
-
-  let visible = tab === 'all' ? jobs : jobs.filter((j) => roleOf(j) === tab);
-  if (hideApplied) visible = visible.filter((j) => !j.applied);
+  const visible = hideApplied ? jobs.filter((j) => !j.applied) : jobs;
 
   return (
     <div>
-      <div className="mb-4 flex gap-1 border-b">
-        {TABS.map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setTab(t.key)}
-            className={`-mb-px border-b-2 px-4 py-2 text-sm ${
-              tab === t.key
-                ? 'border-blue-600 font-medium text-blue-600'
-                : 'border-transparent text-gray-500 hover:text-gray-800'
-            }`}
-          >
-            {t.label}
-            {counts[t.key] !== undefined && <span className="text-gray-400"> ({counts[t.key]})</span>}
-          </button>
-        ))}
-      </div>
-
-      {tab === 'jobright' ? (
-        <JobrightView />
-      ) : (
-        <>
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <label className="text-sm">
-          Posted within{' '}
+          Seen within{' '}
           <select
             className="rounded border px-2 py-1"
             value={sinceHours ?? 'all'}
@@ -149,8 +92,8 @@ export default function JobsPage() {
           Hide applied
         </label>
         <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" checked={priorityOnly} onChange={(e) => setPriorityOnly(e.target.checked)} />
-          Priority only
+          <input type="checkbox" checked={hideUnsure} onChange={(e) => setHideUnsure(e.target.checked)} />
+          H1B = Yes only
         </label>
         <button onClick={load} className="rounded border bg-white px-3 py-1 text-sm hover:bg-gray-100">
           Refresh
@@ -166,12 +109,13 @@ export default function JobsPage() {
         <table className="w-full text-sm">
           <thead className="border-b bg-gray-50 text-left text-gray-600">
             <tr>
-              <th className="px-3 py-2 w-8"></th>
               <th className="px-3 py-2">Company</th>
               <th className="px-3 py-2">Title</th>
               <th className="px-3 py-2">Location</th>
-              <th className="px-3 py-2">Source</th>
-              <th className="px-3 py-2">Seen</th>
+              <th className="px-3 py-2">Salary</th>
+              <th className="px-3 py-2">H1B</th>
+              <th className="px-3 py-2">Work</th>
+              <th className="px-3 py-2">Posted</th>
               <th className="px-3 py-2">Apply</th>
               <th className="px-3 py-2 text-center">Applied</th>
               <th className="px-3 py-2 text-center">Referral</th>
@@ -180,19 +124,22 @@ export default function JobsPage() {
           </thead>
           <tbody>
             {visible.map((j) => (
-              <tr key={j.id} className={`border-b last:border-0 ${j.priority ? 'bg-amber-50' : ''}`}>
-                <td className="px-3 py-2" title={j.priority ? 'Priority / referral target' : ''}>
-                  {j.priority ? '⭐' : ''}
-                </td>
+              <tr key={j.id} className={`border-b last:border-0 ${j.h1b_sponsored === 'Yes' ? 'bg-green-50' : ''}`}>
                 <td className="px-3 py-2 font-medium">{j.company}</td>
                 <td className="px-3 py-2">
                   {j.title}
                   {isNew(j) && <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">NEW</span>}
                 </td>
                 <td className="px-3 py-2 text-gray-600">{j.location || '—'}</td>
-                <td className="px-3 py-2 text-gray-500">{j.source}</td>
+                <td className="px-3 py-2 whitespace-nowrap text-gray-600">{j.salary || '—'}</td>
+                <td className="px-3 py-2 whitespace-nowrap">
+                  <span className={j.h1b_sponsored === 'Yes' ? 'text-green-700' : 'text-gray-500'}>
+                    {j.h1b_sponsored || '—'}
+                  </span>
+                </td>
+                <td className="px-3 py-2 text-gray-600">{j.work_model || '—'}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-gray-500">
-                  {j.first_seen ? new Date(j.first_seen).toLocaleDateString() : '—'}
+                  {j.posted_at ? new Date(j.posted_at).toLocaleDateString() : '—'}
                 </td>
                 <td className="px-3 py-2">
                   {j.apply_url ? (
@@ -213,13 +160,11 @@ export default function JobsPage() {
               </tr>
             ))}
             {!loading && visible.length === 0 && (
-              <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">No jobs match these filters.</td></tr>
+              <tr><td colSpan={11} className="px-3 py-6 text-center text-gray-500">No jobright jobs match these filters.</td></tr>
             )}
           </tbody>
         </table>
       </div>
-        </>
-      )}
     </div>
   );
 }

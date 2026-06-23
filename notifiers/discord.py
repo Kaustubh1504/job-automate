@@ -33,8 +33,9 @@ def _batch(lines, limit):
         yield "\n".join(buf)
 
 
-def _summary(listings):
-    """Lines for a per-company digest: priority companies first, then by count."""
+def _summary(listings, header=None):
+    """Lines for a per-company digest: priority companies first, then by count.
+    An optional `header` line labels the section (e.g. for a jobright digest)."""
     counts = Counter(l.company for l in listings)
     priority = {l.company for l in listings if getattr(l, "priority", False)}
     total = len(listings)
@@ -43,7 +44,8 @@ def _summary(listings):
 
     roles = "role" if total == 1 else "roles"
     cos = "company" if len(counts) == 1 else "companies"
-    lines = [f"**{total} new {roles}** across {len(counts)} {cos}", ""]
+    count_line = f"**{total} new {roles}** across {len(counts)} {cos}"
+    lines = ([header, count_line] if header else [count_line]) + [""]
     for c in order:
         if c in priority:
             lines.append(f"⭐ **{c}** — {counts[c]} (priority)")
@@ -58,9 +60,9 @@ class DiscordNotifier:
     def __init__(self, webhook_url):
         self.webhook_url = webhook_url
 
-    def send(self, listings):
+    def send(self, listings, header=None):
         if not listings:
             return
-        for content in _batch(_summary(listings), MAX_CHARS):
+        for content in _batch(_summary(listings, header), MAX_CHARS):
             resp = requests.post(self.webhook_url, json={"content": content}, timeout=30)
             resp.raise_for_status()

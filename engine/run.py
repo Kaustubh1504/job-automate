@@ -79,10 +79,14 @@ def main():
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
+    # Discord summarizes INTERN roles only (new-grad is still scraped + stored to
+    # the dashboard, just not announced here). jobright posts its own intern
+    # digest separately (engine/jobright.py).
     webhook = os.environ.get("DISCORD_WEBHOOK_URL")
     if webhook:
+        interns = [l for l in new if l.role_type == "intern"]
         try:
-            get_notifier("discord")(webhook).send(new)
+            get_notifier("discord")(webhook).send(interns)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 

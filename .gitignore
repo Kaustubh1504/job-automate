@@ -4,6 +4,9 @@
 # Local state written by the pollers
 state.json
 
+# Cached jobhive companies dataset (re-downloaded on demand)
+.cache/
+
 # Python
 __pycache__/
 *.pyc
