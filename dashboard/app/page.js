@@ -54,6 +54,7 @@ export default function JobsPage() {
     let q = supabase
       .from('jobs')
       .select('*')
+      .not('dismissed', 'is', true) // hide soft-deleted rows (false or null shown)
       .order('first_seen', { ascending: false })
       .limit(2000);
     if (sinceHours) {
@@ -82,15 +83,16 @@ export default function JobsPage() {
     }
   }
 
-  // Permanent: deletes the row from Supabase. The poller won't re-add it
-  // (it's already in state.json's seen set), so it stays gone.
+  // Soft-delete: mark dismissed instead of removing the row, so a re-scrape
+  // (jobright re-upserts everything; the poller relies on state.json) can't
+  // resurrect it. Upserts don't touch `dismissed`, so it stays hidden for good.
   async function remove(job) {
-    if (!window.confirm(`Delete "${job.title}" at ${job.company}? This can't be undone.`)) return;
+    if (!window.confirm(`Remove "${job.title}" at ${job.company}? It won't come back.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
-    const { error } = await supabase.from('jobs').delete().eq('id', job.id);
+    const { error } = await supabase.from('jobs').update({ dismissed: true }).eq('id', job.id);
     if (error) {
       setError(error.message);
-      load(); // re-sync on failure (e.g. RLS blocked the delete)
+      load(); // re-sync on failure (e.g. RLS blocked the update)
     }
   }
 

@@ -33,6 +33,7 @@ export default function JobrightView() {
     let q = supabase
       .from('jobright_jobs')
       .select('*')
+      .not('dismissed', 'is', true) // hide soft-deleted rows (false or null shown)
       .order('first_seen', { ascending: false })
       .limit(2000);
     if (sinceHours) {
@@ -60,10 +61,12 @@ export default function JobrightView() {
     }
   }
 
+  // Soft-delete: mark dismissed so the next jobright scrape (which re-upserts
+  // everything) can't resurrect it. Upserts leave `dismissed` untouched.
   async function remove(job) {
-    if (!window.confirm(`Delete "${job.title}" at ${job.company}? This can't be undone.`)) return;
+    if (!window.confirm(`Remove "${job.title}" at ${job.company}? It won't come back.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
-    const { error } = await supabase.from('jobright_jobs').delete().eq('id', job.id);
+    const { error } = await supabase.from('jobright_jobs').update({ dismissed: true }).eq('id', job.id);
     if (error) {
       setError(error.message);
       load();
