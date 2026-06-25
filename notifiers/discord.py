@@ -33,9 +33,10 @@ def _batch(lines, limit):
         yield "\n".join(buf)
 
 
-def _summary(listings, header=None):
+def _summary(listings, header=None, stats=None):
     """Lines for a per-company digest: priority companies first, then by count.
-    An optional `header` line labels the section (e.g. for a jobright digest)."""
+    An optional `header` line labels the section (e.g. for a jobright digest).
+    An optional `stats` dict ({failed, total}) appends a scrape-health line."""
     counts = Counter(l.company for l in listings)
     priority = {l.company for l in listings if getattr(l, "priority", False)}
     total = len(listings)
@@ -52,6 +53,8 @@ def _summary(listings, header=None):
         else:
             lines.append(f"**{c}** — {counts[c]}")
     lines += ["", f"🔗 View & apply: {DASHBOARD_URL}"]
+    if stats and stats.get("total"):
+        lines.append(f"📡 Scrape: {stats['failed']}/{stats['total']} targets failed")
     return lines
 
 
@@ -60,9 +63,9 @@ class DiscordNotifier:
     def __init__(self, webhook_url):
         self.webhook_url = webhook_url
 
-    def send(self, listings, header=None):
+    def send(self, listings, header=None, stats=None):
         if not listings:
             return
-        for content in _batch(_summary(listings, header), MAX_CHARS):
+        for content in _batch(_summary(listings, header, stats), MAX_CHARS):
             resp = requests.post(self.webhook_url, json={"content": content}, timeout=30)
             resp.raise_for_status()

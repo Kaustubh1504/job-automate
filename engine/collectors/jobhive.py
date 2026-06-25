@@ -27,6 +27,10 @@ MAX_WORKERS = 8
 JITTER_RANGE = (1.0, 5.0)   # seconds; randomized pause before each company scrape
 REQUEST_TIMEOUT = 120       # seconds; per-request timeout for every ATS scraper
 
+# Scrape health from the most recent collect(), read by run.py for the Discord
+# digest. Mutated in place so importers see the latest run's counts.
+LAST_RUN_STATS = {"failed": 0, "total": 0}
+
 
 def _load_targets():
     return config_store.targets()
@@ -95,6 +99,7 @@ def collect(src):
     include, exclude = _load_filter()
     targets = _load_targets()
     out = []
+    failed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
         futures = {pool.submit(_scrape, t, include, exclude): t for t in targets}
         for fut in as_completed(futures):
@@ -102,6 +107,8 @@ def collect(src):
             try:
                 out.extend(fut.result())
             except Exception as e:
+                failed += 1
                 print(f"[jobhive] {t['ats']}:{t['slug']} failed: {type(e).__name__}: {e}",
                       file=sys.stderr)
+    LAST_RUN_STATS.update(failed=failed, total=len(targets))
     return out

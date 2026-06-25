@@ -33,6 +33,7 @@ from notifiers.base import get_notifier  # noqa: E402
 from poller import poll_all  # noqa: E402
 from classify import is_priority  # noqa: E402
 from store import SupabaseStore  # noqa: E402
+from collectors.jobhive import LAST_RUN_STATS as jobhive_stats  # noqa: E402
 
 load_dotenv(find_dotenv())
 
@@ -86,7 +87,7 @@ def main():
     if webhook:
         interns = [l for l in new if l.role_type == "intern"]
         try:
-            get_notifier("discord")(webhook).send(interns)
+            get_notifier("discord")(webhook).send(interns, stats=jobhive_stats)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 
