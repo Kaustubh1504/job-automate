@@ -13,6 +13,25 @@ const SINCE = [
   { label: 'All time', hours: null },
 ];
 
+const TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'intern', label: 'Intern' },
+  { key: 'newgrad', label: 'New Grad' },
+  { key: 'other', label: 'Other' },
+];
+
+// Same buckets as the main Jobs page. JobSpy keyword searches return noisy
+// titles, so classify by the actual title (not the stored role_type) -- that's
+// what surfaces mismatches into "Other".
+const INTERN_RE = /\bintern(ship)?\b/i;
+const NEWGRAD_RE = /\b(new\s?grad(uate)?|early\s?career|entry[-\s]?level|university\s?grad(uate)?|associate engineer)\b/i;
+function roleOf(job) {
+  const t = job.title || '';
+  if (INTERN_RE.test(t)) return 'intern';
+  if (NEWGRAD_RE.test(t)) return 'newgrad';
+  return 'other';
+}
+
 const TWO_HOURS = 2 * 3600 * 1000;
 // Posted within the last 2h -> show a NEW badge.
 function isNew(job) {
@@ -25,6 +44,7 @@ export default function JobspyView() {
   const [error, setError] = useState(null);
   const [sinceHours, setSinceHours] = useState(168);
   const [hideApplied, setHideApplied] = useState(true);
+  const [tab, setTab] = useState('all');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -71,10 +91,38 @@ export default function JobspyView() {
     }
   }
 
-  const visible = hideApplied ? jobs.filter((j) => !j.applied) : jobs;
+  // Counts per tab (over the loaded set, before the applied filter).
+  const counts = jobs.reduce(
+    (acc, j) => {
+      acc.all += 1;
+      acc[roleOf(j)] += 1;
+      return acc;
+    },
+    { all: 0, intern: 0, newgrad: 0, other: 0 }
+  );
+
+  let visible = tab === 'all' ? jobs : jobs.filter((j) => roleOf(j) === tab);
+  if (hideApplied) visible = visible.filter((j) => !j.applied);
 
   return (
     <div>
+      <div className="mb-4 flex gap-1 border-b">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm ${
+              tab === t.key
+                ? 'border-blue-600 font-medium text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            {t.label}
+            <span className="text-gray-400"> ({counts[t.key]})</span>
+          </button>
+        ))}
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <label className="text-sm">
           Seen within{' '}
