@@ -1,5 +1,5 @@
 [Unit]
-Description=Jobright intern scraper (H1B + paid filter -> jobright_jobs + Discord)
+Description=Jobright + JobSpy scrapers (-> jobright_jobs / jobspy_jobs + Discord)
 After=network-online.target
 Wants=network-online.target
 
@@ -9,9 +9,12 @@ User=rpi
 Group=rpi
 WorkingDirectory=/home/rpi/job-automate/engine
 EnvironmentFile=/home/rpi/job-automate/.env
+# Two scrapers share this one oneshot (run sequentially), so they share the
+# jobright timer rather than each getting its own. jobright is fast; jobspy
+# scrapes 4 boards and is slower, hence the larger timeout below.
 ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/jobright.py
-# Two HTTP GETs + a Supabase upsert; fast, but allow margin for slow network.
-TimeoutStartSec=180
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/jobspy_scraper.py
+TimeoutStartSec=900
 
 # No [Install]: triggered by job-automate-jobright.timer (and runnable on demand
 # with `systemctl start job-automate-jobright.service`). jobright.py stays
