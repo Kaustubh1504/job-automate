@@ -2,200 +2,396 @@
   "_comment": "Companies for the live ATS scrape. One API call per cycle per entry. ats must be a jobhive scraper id (greenhouse, lever, ashby, smartrecruiters, workable, rippling, personio, gem, joincom, icims, jazzhr, breezy, teamtailor, pinpoint, bamboohr, cornerstone, recruitee, recruiterbox, eightfold, avature, phenom, workday, oracle, successfactors, taleo, mercor, amazon, apple, google, tiktok, uber, meta, tesla). For workday: slug is the FULL URL (https://{tenant}.wdN.myworkdayjobs.com/{site}). For big-tech endpoints (amazon, apple, google, tiktok, uber, meta, tesla) the slug is ignored but must be present.",
   "targets": [
     {
-      "ats": "amazon",
-      "slug": "amazon"
-    },
-    {
-      "ats": "apple",
-      "slug": "apple"
-    },
-    {
-      "ats": "google",
-      "slug": "google"
+      "ats": "workday",
+      "slug": "https://3m.wd1.myworkdayjobs.com/search"
     },
     {
       "ats": "workday",
-      "slug": "https://fmr.wd1.myworkdayjobs.com/FidelityCareers"
+      "slug": "https://abbott.wd5.myworkdayjobs.com/abbottcareers"
     },
     {
-      "ats": "workday",
-      "slug": "https://jpmc.wd5.myworkdayjobs.com/ExternalCareerSite"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite"
+      "ats": "smartrecruiters",
+      "slug": "abbvie"
     },
     {
       "ats": "greenhouse",
-      "slug": "peopletech"
+      "slug": "acadianassetmanagementllc"
+    },
+    {
+      "ats": "join_com",
+      "slug": "accenture"
     },
     {
       "ats": "workday",
-      "slug": "https://salesforce.wd12.myworkdayjobs.com/External_Career_Site"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://intel.wd1.myworkdayjobs.com/External"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://paypal.wd1.myworkdayjobs.com/jobs"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "linkedin"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://ms.wd5.myworkdayjobs.com/External"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://cisco.wd5.myworkdayjobs.com/at_cisco_careers"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://barclays.wd3.myworkdayjobs.com/External_Career_Site_Barclays"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://capitalone.wd1.myworkdayjobs.com/Capital_One"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://servicenow.wd1.myworkdayjobs.com/ServiceNowCareers"
+      "slug": "https://xboxgaming.wd1.myworkdayjobs.com/External/job/Warsaw/Senior-Quest-Designer_R026917/apply"
     },
     {
       "ats": "workday",
       "slug": "https://adobe.wd5.myworkdayjobs.com/external_experienced"
     },
     {
-      "ats": "workday",
-      "slug": "https://intuit.wd5.myworkdayjobs.com/IntuitCareers"
-    },
-    {
       "ats": "greenhouse",
-      "slug": "ebay"
+      "slug": "affirm"
     },
     {
       "ats": "smartrecruiters",
-      "slug": "oracle"
-    },
-    {
-      "ats": "uber",
-      "slug": "uber"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://asml.wd3.myworkdayjobs.com/ASML_External"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://schwabjobs.wd1.myworkdayjobs.com/External"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://expedia.wd108.myworkdayjobs.com/search"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://usbank.wd1.myworkdayjobs.com/US_Bank_Careers"
-    },
-    {
-      "ats": "tiktok",
-      "slug": "tiktok"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://paloaltonetworks.wd1.myworkdayjobs.com/PaloAltoNetworks"
+      "slug": "AgilentTechnologies2"
     },
     {
       "ats": "greenhouse",
-      "slug": "snowflake"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://ubs.wd3.myworkdayjobs.com/global"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://lilly.wd5.myworkdayjobs.com/LLY"
+      "slug": "airbnb"
     },
     {
       "ats": "greenhouse",
-      "slug": "databricks"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://visa.wd5.myworkdayjobs.com/visa"
-    },
-    {
-      "ats": "ashby",
-      "slug": "openai"
+      "slug": "akunacapital"
     },
     {
       "ats": "greenhouse",
-      "slug": "anthropic"
+      "slug": "alphagrepsecurities"
     },
     {
-      "ats": "ashby",
-      "slug": "scaleai"
+      "ats": "amazon",
+      "slug": "amazon"
     },
     {
-      "ats": "ashby",
-      "slug": "huggingface"
+      "ats": "workday",
+      "slug": "https://amgen.wd1.myworkdayjobs.com/careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://analogdevices.wd1.myworkdayjobs.com/external"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://athene.wd5.myworkdayjobs.com/Apollo_Careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "appian"
+    },
+    {
+      "ats": "apple",
+      "slug": "apple"
+    },
+    {
+      "ats": "eightfold",
+      "slug": "appliedmaterials"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "applovin"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://aptiv.wd5.myworkdayjobs.com/aptiv_careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "aqr"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "aquaticcapitalmanagement"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "arcesiumllc"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "aristanetworks"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://arrowstreetcapital.wd5.myworkdayjobs.com/arrowstreet"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "asana"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "ASML1"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://astrazeneca.wd3.myworkdayjobs.com/careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://att.wd1.myworkdayjobs.com/ATTGeneral"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "aurorainnovation"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://autodesk.wd1.myworkdayjobs.com/ext"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://bmo.wd3.myworkdayjobs.com/External/job/Montrose-CO-USA/Bank-Manager_R260008607/apply"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://barclays.wd3.myworkdayjobs.com/external_career_site_barclays"
+    },
+    {
+      "ats": "successfactors",
+      "slug": "https://jobs.bayer.com"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "bectondickinson2"
+    },
+    {
+      "ats": "lever",
+      "slug": "belvederetrading"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://biibhr.wd3.myworkdayjobs.com/external"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://blackstone.wd1.myworkdayjobs.com/blackstone_careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "block"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://bmo.wd3.myworkdayjobs.com/external"
+    },
+    {
+      "ats": "successfactors",
+      "slug": "https://jobs.bostonscientific.com"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "boxinc"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "brex"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "bridgewater89"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://bristolmyerssquibb.wd5.myworkdayjobs.com/bms"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "bytedance"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://cadence.wd1.myworkdayjobs.com/External_Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://capitalone.wd12.myworkdayjobs.com/capital_one"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "capstoneinvestmentadvisors"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://cat.wd5.myworkdayjobs.com/CaterpillarCareers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://cboe.wd1.myworkdayjobs.com/external_career_cboe"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "celonis"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://chevron.wd5.myworkdayjobs.com/jobs"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "chicagotrading"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://cibc.wd3.myworkdayjobs.com/search"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://careers.cisco.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://citi.wd5.myworkdayjobs.com/2"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "cloudflare"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://cmegroup.wd1.myworkdayjobs.com/cme_careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "cockroachlabs"
     },
     {
       "ats": "ashby",
       "slug": "cohere"
     },
     {
-      "ats": "ashby",
-      "slug": "perplexity"
+      "ats": "greenhouse",
+      "slug": "coinbase"
     },
     {
-      "ats": "ashby",
-      "slug": "glean"
+      "ats": "workday",
+      "slug": "https://comcast.wd5.myworkdayjobs.com/comcast_careers"
     },
     {
       "ats": "greenhouse",
-      "slug": "moveworks"
+      "slug": "coupang"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://crowdstrike.wd5.myworkdayjobs.com/crowdstrikecareers"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://fa-espx-saasfaprod1.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://danaher.wd1.myworkdayjobs.com/danaherjobs"
     },
     {
       "ats": "greenhouse",
-      "slug": "jasperai"
-    },
-    {
-      "ats": "lever",
-      "slug": "palantir"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "mongodb"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "splunkinc"
+      "slug": "databricks"
     },
     {
       "ats": "greenhouse",
       "slug": "datadog"
     },
     {
-      "ats": "greenhouse",
-      "slug": "zoom"
+      "ats": "oracle",
+      "slug": "https://iawmqy.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/careers"
+    },
+    {
+      "ats": "successfactors",
+      "slug": "https://careers.deloitte.ca"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://dexcom.wd1.myworkdayjobs.com/dexcom"
     },
     {
       "ats": "greenhouse",
-      "slug": "box"
+      "slug": "discord"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "docusign"
     },
     {
       "ats": "greenhouse",
-      "slug": "hubspot"
+      "slug": "doordashusa"
     },
     {
-      "ats": "ashby",
-      "slug": "vercel"
+      "ats": "workday",
+      "slug": "https://dow.wd1.myworkdayjobs.com/ExternalCareers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://dowjones.wd1.myworkdayjobs.com/dow_jones_career"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://draftkings.wd1.myworkdayjobs.com/draftkings"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "dropbox"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "drweng"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://ebxr.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "duolingo"
+    },
+    {
+      "ats": "bamboohr",
+      "slug": "ea"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://edwards.wd5.myworkdayjobs.com/edwardscareers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "elsevier"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "epicgames"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://equinix.wd1.myworkdayjobs.com/external"
+    },
+    {
+      "ats": "eightfold",
+      "slug": "ericsson"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://etsy.wd5.myworkdayjobs.com/etsy_careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "exoduspoint"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://expedia.wd108.myworkdayjobs.com/search"
+    },
+    {
+      "ats": "successfactors",
+      "slug": "https://jobs.exxonmobil.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://ffive.wd5.myworkdayjobs.com/f5jobs"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://factset.wd108.myworkdayjobs.com/factsetcareers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "fanduel"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "fastly"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://wd1.myworkdaysite.com/en-US/recruiting/fmr/FidelityCareers"
     },
     {
       "ats": "greenhouse",
@@ -203,83 +399,675 @@
     },
     {
       "ats": "greenhouse",
-      "slug": "postman"
+      "slug": "fiveringsllc"
     },
     {
       "ats": "greenhouse",
-      "slug": "gitlab"
+      "slug": "flowtraders"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://efds.fa.em5.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://edel.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_2001"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "freshworks"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://gresearch.wd103.myworkdayjobs.com/g-research"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://gehc.wd5.myworkdayjobs.com/GEHC_ExternalSite/job/Chiba/Field-Service-Engineer--_R4035708-6/apply"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://careers.gehealthcare.com"
     },
     {
       "ats": "greenhouse",
-      "slug": "atlassian"
+      "slug": "gemini"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://roche.wd3.myworkdayjobs.com/ROG-A2O-GENE"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://generalmotors.wd5.myworkdayjobs.com/careers_gm"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://gilead.wd1.myworkdayjobs.com/gileadcareers"
     },
     {
       "ats": "greenhouse",
-      "slug": "hashicorp"
+      "slug": "gleanwork"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://globalfoundries.wd1.myworkdayjobs.com/external"
     },
     {
       "ats": "greenhouse",
-      "slug": "asana"
+      "slug": "godaddy"
+    },
+    {
+      "ats": "google",
+      "slug": "google"
+    },
+    {
+      "ats": "gem",
+      "slug": "groq"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://gsk.wd5.myworkdayjobs.com/gskcareers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://guidewire.wd5.myworkdayjobs.com/external"
     },
     {
       "ats": "greenhouse",
-      "slug": "airtable"
+      "slug": "gusto"
+    },
+    {
+      "ats": "ashby",
+      "slug": "harvey"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://hpe.wd5.myworkdayjobs.com/Jobsathpe"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://hp.wd5.myworkdayjobs.com/externalcareersite"
     },
     {
       "ats": "greenhouse",
-      "slug": "coinbase"
+      "slug": "hyannisportresearch"
     },
     {
       "ats": "greenhouse",
-      "slug": "squareup"
+      "slug": "hubspotjobs"
     },
     {
       "ats": "greenhouse",
-      "slug": "robinhood"
+      "slug": "wehrtyou"
+    },
+    {
+      "ats": "icims",
+      "slug": "ice"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://illumina.wd1.myworkdayjobs.com/illumina-careers"
     },
     {
       "ats": "greenhouse",
-      "slug": "ripple"
+      "slug": "imc"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://intel.wd1.myworkdayjobs.com/external"
     },
     {
       "ats": "greenhouse",
-      "slug": "stripe"
+      "slug": "ibkr"
+    },
+    {
+      "ats": "icims",
+      "slug": "https://careers-ice.icims.com"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "intuit2"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "intuitive"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "janestreet"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://jj.wd5.myworkdayjobs.com/JJ"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://jpmc.fa.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "jumptrading"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://careers.king.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://kla.wd1.myworkdayjobs.com/search"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "klaviyo"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://icbpjb.fa.ocs.oraclecloud.com/hcmUI/CandidateExperience/en/sites/LazardStudentCareers"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "linkedin3"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://lseg.wd3.myworkdayjobs.com/careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "lucidmotors"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "lyft"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://magna.wd3.myworkdayjobs.com/magna"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://wd3.myworkdaysite.com/en-US/recruiting/magna/Magna"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "marketaxesscorporation"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "marshallwace"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://marvell.wd1.myworkdayjobs.com/marvellcareers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://mastercard.wd1.myworkdayjobs.com/corporatecareers"
     },
     {
       "ats": "lever",
+      "slug": "matchgroup"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://medtronic.wd1.myworkdayjobs.com/medtroniccareers"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://jobs.merck.com"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "meta1"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://micron.wd1.myworkdayjobs.com/External"
+    },
+    {
+      "ats": "eightfold",
+      "slug": "microsoft"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://modernatx.wd1.myworkdayjobs.com/M_tx"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "mongodb"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://ms.wd5.myworkdayjobs.com/External"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "gomotive"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://msd.wd5.myworkdayjobs.com/searchjobs"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://nasdaq.wd1.myworkdayjobs.com/global_external_site"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "nbcuniversal3"
+    },
+    {
+      "ats": "successfactors",
+      "slug": "https://jobs.netapp.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://netflix.wd108.myworkdayjobs.com/Netflix"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://nike.wd1.myworkdayjobs.com/nke"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "nintendo"
+    },
+    {
+      "ats": "ashby",
+      "slug": "notion"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://nvidia.wd5.myworkdayjobs.com/nvidiaexternalcareersite"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://nxp.wd3.myworkdayjobs.com/careers"
+    },
+    {
+      "ats": "bamboohr",
+      "slug": "oaktree"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "okta"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://hctz.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX_1001"
+    },
+    {
+      "ats": "ashby",
+      "slug": "openai"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "optiverus"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://paypal.wd1.myworkdayjobs.com/jobs"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "pdtpartners"
+    },
+    {
+      "ats": "icims",
+      "slug": "pepsico"
+    },
+    {
+      "ats": "ashby",
+      "slug": "perplexity"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://www.careers.philips.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://pimco.wd1.myworkdayjobs.com/pimco-careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "pinterest"
+    },
+    {
+      "ats": "ashby",
       "slug": "plaid"
     },
     {
+      "ats": "greenhouse",
+      "slug": "sonyinteractiveentertainmentglobal"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "point72"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://pwc.wd3.myworkdayjobs.com/Global_Experienced_Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://procore.wd12.myworkdayjobs.com/Procore_External_Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://pg.wd5.myworkdayjobs.com/1000"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://prudential.wd3.myworkdayjobs.com/prudential"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://pru.wd5.myworkdayjobs.com/Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://ptc.wd1.myworkdayjobs.com/ptc"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "purestorage"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://pwc.wd3.myworkdayjobs.com/global_experienced_careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "quadraturecapital"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "qualtrics"
+    },
+    {
       "ats": "lever",
-      "slug": "brex"
+      "slug": "quantco-"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "radixuniversity"
     },
     {
       "ats": "ashby",
       "slug": "ramp"
     },
     {
-      "ats": "greenhouse",
-      "slug": "affirm"
+      "ats": "workday",
+      "slug": "https://redhat.wd5.myworkdayjobs.com/jobs"
     },
     {
       "ats": "greenhouse",
-      "slug": "chime"
+      "slug": "reddit"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://relx.wd3.myworkdayjobs.com/relx"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://remitly.wd5.myworkdayjobs.com/remitly_careers"
+    },
+    {
+      "ats": "ashby",
+      "slug": "replit"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "riotgames"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "ripple"
+    },
+    {
+      "ats": "rippling",
+      "slug": "rippling"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "roblox"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://roche.wd3.myworkdayjobs.com/roche-ext"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "roku"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "rubrik"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://spgi.wd5.myworkdayjobs.com/SPGI_Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://salesforce.wd12.myworkdayjobs.com/external_career_site"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "samsara"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "samsung1"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "samsungresearchamerica"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://sanofi.wd3.myworkdayjobs.com/sanoficareers"
+    },
+    {
+      "ats": "successfactors",
+      "slug": "https://jobs.sap.com"
+    },
+    {
+      "ats": "icims",
+      "slug": "https://careers-sas.icims.com"
+    },
+    {
+      "ats": "icims",
+      "slug": "https://globalcareers-sas.icims.com"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "schonfeld"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "servicenow"
+    },
+    {
+      "ats": "icims",
+      "slug": "sig"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "sixthstreet"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "smartsheet"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://wd1.myworkdaysite.com/en-US/recruiting/snapchat/snap"
+    },
+    {
+      "ats": "ashby",
+      "slug": "snowflake"
     },
     {
       "ats": "greenhouse",
       "slug": "sofi"
     },
     {
+      "ats": "workday",
+      "slug": "https://sonyglobal.wd1.myworkdayjobs.com/SonyGlobalCareers"
+    },
+    {
       "ats": "greenhouse",
-      "slug": "tempus"
+      "slug": "siei"
     },
     {
       "ats": "lever",
-      "slug": "benchling"
+      "slug": "spotify"
     },
     {
       "ats": "greenhouse",
-      "slug": "flatironhealth"
+      "slug": "squarepointcapital"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "squarespace"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://careers.statestreet.com"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "stripe"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://stryker.wd1.myworkdayjobs.com/strykercareers"
+    },
+    {
+      "ats": "icims",
+      "slug": "https://careers-sig.icims.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://troweprice.wd5.myworkdayjobs.com/troweprice"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "taketwo"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://takeda.wd3.myworkdayjobs.com/external"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://td.wd3.myworkdayjobs.com/TD_Bank_Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://tempus.wd5.myworkdayjobs.com/Tempus_Careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://tencent.wd1.myworkdayjobs.com/tencent_careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "thealleninstitute"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://coke.wd1.myworkdayjobs.com/coca-cola-careers"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "thenewyorktimes"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "thetradedesk"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "tudorgroup"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://washpost.wd5.myworkdayjobs.com/washingtonpostcareers"
+    },
+    {
+      "ats": "phenom",
+      "slug": "https://jobs.thermofisher.com"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://thermofisher.wd5.myworkdayjobs.com/ThermoFisherCareers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://thomsonreuters.wd5.myworkdayjobs.com/external_career_site"
+    },
+    {
+      "ats": "tiktok",
+      "slug": "tiktok"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "toast"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "towerresearchcapital"
+    },
+    {
+      "ats": "lever",
+      "slug": "tri"
+    },
+    {
+      "ats": "oracle",
+      "slug": "https://ecnf.fa.us2.oraclecloud.com/hcmUI/CandidateExperience/en/sites/CX"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "tripadvisor"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "twilio"
+    },
+    {
+      "ats": "uber",
+      "slug": "uber"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "uberfreight"
+    },
+    {
+      "ats": "ashby",
+      "slug": "uipath"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://unilever.wd3.myworkdayjobs.com/unilever_experienced_professionals"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "unity3d"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "upstart"
+    },
+    {
+      "ats": "lever",
+      "slug": "valkyrietrading"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://vanguard.wd5.myworkdayjobs.com/vanguard_external"
     },
     {
       "ats": "lever",
@@ -287,31 +1075,75 @@
     },
     {
       "ats": "greenhouse",
-      "slug": "recursionpharmaceuticals"
+      "slug": "vercel"
     },
     {
       "ats": "greenhouse",
-      "slug": "insitro"
+      "slug": "veritiongroupllc"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://verizon.wd12.myworkdayjobs.com/verizon-careers"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://vrtx.wd501.myworkdayjobs.com/Vertex_Careers"
     },
     {
       "ats": "greenhouse",
-      "slug": "schrodinger"
+      "slug": "virtu"
     },
     {
       "ats": "workday",
-      "slug": "https://illumina.wd1.myworkdayjobs.com/illumina-careers"
-    },
-    {
-      "ats": "workday",
-      "slug": "https://intuitive.wd1.myworkdayjobs.com/IRTC_Careers"
+      "slug": "https://visa.wd5.myworkdayjobs.com/visa"
     },
     {
       "ats": "greenhouse",
-      "slug": "commure"
+      "slug": "voloridgeinvestmentmanagement"
     },
     {
       "ats": "workday",
-      "slug": "https://crowdstrike.wd5.myworkdayjobs.com/crowdstrikecareers"
+      "slug": "https://walmart.wd504.myworkdayjobs.com/WalmartExternal"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://warnerbros.wd5.myworkdayjobs.com/global"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "waymo"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "westerndigital"
+    },
+    {
+      "ats": "smartrecruiters",
+      "slug": "wise"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://workday.wd5.myworkdayjobs.com/workday"
+    },
+    {
+      "ats": "greenhouse",
+      "slug": "worldquant"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://zendesk.wd1.myworkdayjobs.com/zendesk"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://zillow.wd5.myworkdayjobs.com/zillow_group_external"
+    },
+    {
+      "ats": "workday",
+      "slug": "https://zoom.wd5.myworkdayjobs.com/zoom"
+    },
+    {
+      "ats": "lever",
+      "slug": "zoox"
     },
     {
       "ats": "greenhouse",
@@ -319,143 +1151,7 @@
     },
     {
       "ats": "greenhouse",
-      "slug": "wiz"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "sentinelone"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "rubrik"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "snyk"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "netskope"
-    },
-    {
-      "ats": "ashby",
-      "slug": "illumio"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "cloudflare"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "okta"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "waymo"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "zoox"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "aurora"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "rivian"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "nuro"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "andurilindustries"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "skydio"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "doordash"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "instacart"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "flexport"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "airbnb"
-    },
-    {
-      "ats": "lever",
-      "slug": "spotify"
-    },
-    {
-      "ats": "lever",
-      "slug": "netflix"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "reddit"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "snapinc"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "discord"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "matchgroup"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "robloxcorporation"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "epicgames"
-    },
-    {
-      "ats": "smartrecruiters",
-      "slug": "unity3d"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "niantic"
-    },
-    {
-      "ats": "smartrecruiters",
-      "slug": "canva"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "miro"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "retool"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "verkada"
-    },
-    {
-      "ats": "ashby",
-      "slug": "notion"
-    },
-    {
-      "ats": "greenhouse",
-      "slug": "pinterest"
+      "slug": "zyngacareers"
     }
   ]
 }

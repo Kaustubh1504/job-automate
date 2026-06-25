@@ -25,6 +25,7 @@ from listing import Listing
 
 MAX_WORKERS = 8
 JITTER_RANGE = (1.0, 5.0)   # seconds; randomized pause before each company scrape
+REQUEST_TIMEOUT = 120       # seconds; per-request timeout for every ATS scraper
 
 
 def _load_targets():
@@ -85,7 +86,7 @@ def _scrape(target, include, exclude):
     delay = random.uniform(*JITTER_RANGE)
     print(f"[jobhive] sleeping {delay:.1f}s before {target['ats']}:{target['slug']}", file=sys.stderr)
     time.sleep(delay)
-    jobs = get_scraper(target["ats"], target["slug"]).fetch()
+    jobs = get_scraper(target["ats"], target["slug"], timeout=REQUEST_TIMEOUT).fetch()
     return [_to_listing(j) for j in jobs if _wanted(j.title, include, exclude)]
 
 
