@@ -14,6 +14,6 @@
   "exclude": [
     "senior", "staff", "principal", "director", "vice president", "head of",
     "manager", "distinguished",
-    "phd", "ph.d", "ph. d"
+    "phd", "ph.d", "ph. d", "sr"
   ]
 }

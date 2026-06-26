@@ -9,6 +9,7 @@ they don't crash the poll.
 
 import json
 import os
+import re
 from pathlib import Path
 
 import requests
@@ -60,14 +61,16 @@ def keywords():
 
 
 def excluded(title, exclude=None):
-    """True if `title` contains any centralized exclude term (case-insensitive
-    substring). The single title-exclude rule shared by every scraper -- jobhive,
-    jobright and jobspy -- so the dashboard-editable keyword list governs them all.
-    Pass `exclude` to reuse a list already loaded via keywords() and skip a fetch."""
+    """True if `title` contains any centralized exclude term as a whole word
+    (case-insensitive). The single title-exclude rule shared by every scraper --
+    jobhive, jobright and jobspy -- so the dashboard-editable keyword list governs
+    them all. Whole-word (not substring) so "sr" drops "Sr. Engineer" but not
+    "SRE", and "staff" doesn't catch "staffing". Pass `exclude` to reuse a list
+    already loaded via keywords() and skip a fetch."""
     t = (title or "").lower()
     if exclude is None:
         exclude = keywords()[1]
-    return any(x.lower() in t for x in exclude)
+    return any(re.search(rf"\b{re.escape(x.lower())}\b", t) for x in exclude)
 
 
 def priority():
