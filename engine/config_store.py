@@ -66,8 +66,12 @@ def excluded(title, exclude=None):
     jobhive, jobright and jobspy -- so the dashboard-editable keyword list governs
     them all. Whole-word (not substring) so "sr" drops "Sr. Engineer" but not
     "SRE", and "staff" doesn't catch "staffing". Pass `exclude` to reuse a list
-    already loaded via keywords() and skip a fetch."""
-    t = (title or "").lower()
+    already loaded via keywords() and skip a fetch.
+
+    Underscores are normalized to spaces first: many ATS titles join words with
+    "_" (e.g. pwc's "IN_Senior Associate_..."), and "_" is a regex word char, so
+    "\bsenior\b" would NOT match "IN_Senior" and the exclude would silently leak."""
+    t = re.sub(r"_", " ", (title or "").lower())
     if exclude is None:
         exclude = keywords()[1]
     return any(re.search(rf"\b{re.escape(x.lower())}\b", t) for x in exclude)

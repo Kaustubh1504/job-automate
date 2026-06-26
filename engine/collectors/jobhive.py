@@ -21,6 +21,7 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 from jobhive.scrapers import get_scraper
 
 import config_store
+import us_location
 from collectors.base import register
 from listing import Listing
 
@@ -95,7 +96,10 @@ def _scrape(target, include, exclude):
     print(f"[jobhive] sleeping {delay:.1f}s before {target['ats']}:{target['slug']}", file=sys.stderr)
     time.sleep(delay)
     jobs = get_scraper(target["ats"], target["slug"], timeout=REQUEST_TIMEOUT).fetch()
-    return [_to_listing(j) for j in jobs if _wanted(j.title, include, exclude)]
+    # Title filter, then drop non-US locations (lenient: ambiguous/blank/remote
+    # and US-paired multi-location strings are kept -- see us_location.py).
+    return [_to_listing(j) for j in jobs
+            if _wanted(j.title, include, exclude) and us_location.is_us_location(j.location)]
 
 
 @register("jobhive")
