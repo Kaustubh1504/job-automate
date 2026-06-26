@@ -98,8 +98,11 @@ export default function JobsPage() {
     }
   }
 
-  // Counts per tab (over the loaded set, before the applied filter).
-  const counts = jobs.reduce(
+  // Available jobs = loaded set minus applied (when hiding applied). Tab counts
+  // reflect this base, so a tab's count matches the rows actually shown, not the
+  // total.
+  const available = hideApplied ? jobs.filter((j) => !j.applied) : jobs;
+  const counts = available.reduce(
     (acc, j) => {
       acc.all += 1;
       const r = roleOf(j);
@@ -109,8 +112,7 @@ export default function JobsPage() {
     { all: 0, intern: 0, newgrad: 0 }
   );
 
-  let visible = tab === 'all' ? jobs : jobs.filter((j) => roleOf(j) === tab);
-  if (hideApplied) visible = visible.filter((j) => !j.applied);
+  const visible = tab === 'all' ? available : available.filter((j) => roleOf(j) === tab);
 
   return (
     <div>
