@@ -9,10 +9,11 @@
     "security engineer", "mobile engineer", "android engineer", "ios engineer",
     "site reliability", "devops",
     "intern", "new grad", "new graduate", "early career", "university graduate",
-    "entry level", "associate engineer"
+    "entry level", "associate engineer", "ai", "ml", "data"
   ],
   "exclude": [
     "senior", "staff", "principal", "director", "vice president", "head of",
-    "manager", "distinguished"
+    "manager", "distinguished",
+    "phd", "ph.d", "ph. d"
   ]
 }

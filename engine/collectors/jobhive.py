@@ -13,6 +13,7 @@ Company list and filter live at the project root:
 """
 
 import random
+import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -42,10 +43,13 @@ def _load_filter():
 
 
 def _wanted(title, include, exclude):
-    t = title.lower()
-    if any(x in t for x in exclude):        # exclude wins (e.g. "Senior ...")
+    if config_store.excluded(title, exclude):   # exclude wins (e.g. "Senior ...", PhD)
         return False
-    return not include or any(i in t for i in include)
+    # include matches at a word start so short tokens like "ai"/"ml" catch real
+    # roles ("AI Engineer", "AI/ML", "AIOps") without matching "retAIl"/"Mumbai",
+    # while "intern" still covers "internship".
+    t = title.lower()
+    return not include or any(re.search(rf"\b{re.escape(i)}", t) for i in include)
 
 
 def _role_type(title):

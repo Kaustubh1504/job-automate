@@ -31,6 +31,7 @@ load_dotenv(find_dotenv())
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import notifiers  # noqa: E402,F401  (importing registers every provider)
 from notifiers.base import get_notifier  # noqa: E402
+import config_store  # noqa: E402  (engine/ -- centralized title-exclude keywords)
 
 BASE = "https://jobright.ai/minisites-jobs"
 HEADERS = {"User-Agent": "Mozilla/5.0 (compatible; jobpoll/1.0)"}
@@ -69,14 +70,16 @@ def _fetch(type_, country, category):
 def scrape():
     """Return {id: (type, category, job_dict)} for all kept jobs, deduped by id."""
     by_id = {}
+    _, exclude = config_store.keywords()   # centralized title-exclude (PhD, senior, ...)
     for type_, country, category in MINISITES:
         try:
             jobs = _fetch(type_, country, category)
         except Exception as e:
             print(f"[jobright] {category} fetch failed: {type(e).__name__}: {e}", file=sys.stderr)
             continue
-        kept = [j for j in jobs if _sponsors_h1b(j) and _is_paid(j)]
-        print(f"[jobright] {type_}/{category}: {len(jobs)} fetched, {len(kept)} kept after H1B + paid filter",
+        kept = [j for j in jobs if _sponsors_h1b(j) and _is_paid(j)
+                and not config_store.excluded(j.get("title"), exclude)]
+        print(f"[jobright] {type_}/{category}: {len(jobs)} fetched, {len(kept)} kept after H1B + paid + keyword filter",
               file=sys.stderr)
         for j in kept:
             by_id[j["id"]] = (type_, category, j)

@@ -38,6 +38,7 @@ load_dotenv(find_dotenv())
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import notifiers  # noqa: E402,F401  (importing registers every provider)
 from notifiers.base import get_notifier  # noqa: E402
+import config_store  # noqa: E402  (engine/ -- centralized title-exclude keywords)
 
 # Per-group scrape settings (each runs as its own jobspy call, per search).
 # LinkedIn is proxied (JOBSPY_PROXIES) so we can pull deep without tripping its
@@ -133,6 +134,7 @@ def scrape():
     JOBSPY_PROXIES with a deep+wide pull, Indeed direct and lean."""
     by_id = {}
     proxies = _proxies()
+    _, exclude = config_store.keywords()   # centralized title-exclude (PhD, senior, ...)
     for role_type, term, google_term in SEARCHES:
         for g in GROUPS:
             sites = g["sites"]
@@ -146,6 +148,8 @@ def scrape():
             for _, r in df.iterrows():
                 d = r.to_dict()
                 if not d.get("id"):
+                    continue
+                if config_store.excluded(d.get("title"), exclude):  # central title-exclude
                     continue
                 by_id.setdefault(d["id"], _row(role_type, d))  # first role wins on overlap
                 n += 1

@@ -59,6 +59,17 @@ def keywords():
     return cfg.get("include", []), cfg.get("exclude", [])
 
 
+def excluded(title, exclude=None):
+    """True if `title` contains any centralized exclude term (case-insensitive
+    substring). The single title-exclude rule shared by every scraper -- jobhive,
+    jobright and jobspy -- so the dashboard-editable keyword list governs them all.
+    Pass `exclude` to reuse a list already loaded via keywords() and skip a fetch."""
+    t = (title or "").lower()
+    if exclude is None:
+        exclude = keywords()[1]
+    return any(x.lower() in t for x in exclude)
+
+
 def priority():
     """(hourly_threshold, allowlist_company_names) for the priority tag."""
     try:
