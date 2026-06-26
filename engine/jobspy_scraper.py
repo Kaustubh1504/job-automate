@@ -23,6 +23,7 @@ Env:  SUPABASE_URL, SUPABASE_KEY (store; optional -- without them it only prints
 
 import math
 import os
+import re
 import sys
 from pathlib import Path
 from types import SimpleNamespace
@@ -49,6 +50,9 @@ from notifiers.base import get_notifier  # noqa: E402
 LINKEDIN = {"sites": ["linkedin"], "results_wanted": 500, "hours_old": 48, "proxied": True}
 INDEED = {"sites": ["indeed"], "results_wanted": 50, "hours_old": 24, "proxied": False}
 GROUPS = [LINKEDIN, INDEED]
+
+# Discord pings only for intern roles -- matched by title, like the dashboard.
+INTERN_RE = re.compile(r"\bintern(ship)?\b", re.I)
 
 
 def _proxies():
@@ -201,14 +205,20 @@ def main():
     except Exception as e:
         print(f"[jobspy] store failed (does table 'jobspy_jobs' exist?): {e}", file=sys.stderr)
 
-    # Discord: announce only the newly-seen roles. `existing` is empty/None on the
-    # first populated run, so the backlog isn't blasted -- only new postings after.
+    # Discord: announce only newly-seen INTERN roles (new-grad is stored but not
+    # pinged). `existing` is empty/None on the first populated run, so the backlog
+    # isn't blasted -- only new postings after. Match by title (same as the
+    # dashboard) since the search bucket is noisy.
     webhook = os.environ.get("DISCORD_WEBHOOK_URL")
     if webhook and existing:
-        fresh = [SimpleNamespace(company=r["company"]) for r in rows if r["id"] not in existing]
-        print(f"[jobspy] {len(fresh)} new since last run", file=sys.stderr)
+        fresh = [
+            SimpleNamespace(company=r["company"])
+            for r in rows
+            if r["id"] not in existing and r.get("title") and INTERN_RE.search(r["title"])
+        ]
+        print(f"[jobspy] {len(fresh)} new intern roles since last run", file=sys.stderr)
         try:
-            get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** (LinkedIn/Indeed)")
+            get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** new interns (LinkedIn/Indeed)")
         except Exception as e:
             print(f"[jobspy] discord notify failed: {e}", file=sys.stderr)
 
