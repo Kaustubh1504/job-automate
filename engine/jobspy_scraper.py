@@ -38,10 +38,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import notifiers  # noqa: E402,F401  (importing registers every provider)
 from notifiers.base import get_notifier  # noqa: E402
 
-PROXIED_SITES = ["linkedin"]  # rotated through JOBSPY_PROXIES to beat LinkedIn's per-IP rate limit
-DIRECT_SITES = ["indeed"]     # work fine on the host IP; no proxy needed
-RESULTS_WANTED = 50          # per site, per search
-HOURS_OLD = 24               # only roles posted in the last 24 hours
+# Per-group scrape settings (each runs as its own jobspy call, per search).
+# LinkedIn is proxied (JOBSPY_PROXIES) so we can pull deep without tripping its
+# per-IP rate limit. results_wanted=500 = a 50-page budget: it pages until
+# LinkedIn runs out (off-season it stops in a few pages), rather than ceiling on
+# results_wanted. (jobspy's start<1000 cap still bounds heavy seasons at ~14
+# full-page fetches.) 2-day window so postings aren't missed between runs --
+# re-fetched rows just upsert (dedup on id; Discord announces only new).
+# Indeed works on the host IP and stays lean/fresh.
+LINKEDIN = {"sites": ["linkedin"], "results_wanted": 500, "hours_old": 48, "proxied": True}
+INDEED = {"sites": ["indeed"], "results_wanted": 50, "hours_old": 24, "proxied": False}
+GROUPS = [LINKEDIN, INDEED]
 
 
 def _proxies():
@@ -100,14 +107,14 @@ def _row(role_type, r):
     }
 
 
-def _scrape(sites, term, google_term, proxies):
+def _scrape(sites, term, google_term, results_wanted, hours_old, proxies):
     return scrape_jobs(
         site_name=sites,
         search_term=term,
         google_search_term=google_term,
         location="United States",
-        results_wanted=RESULTS_WANTED,
-        hours_old=HOURS_OLD,
+        results_wanted=results_wanted,
+        hours_old=hours_old,
         country_indeed="USA",
         proxies=proxies,
         verbose=0,
@@ -117,15 +124,17 @@ def _scrape(sites, term, google_term, proxies):
 def scrape():
     """Return {id: row} for all scraped jobs, deduped by jobspy's job id.
 
-    LinkedIn and Indeed run as separate calls because jobspy applies one
-    proxies= setting per call: LinkedIn goes through JOBSPY_PROXIES, Indeed
-    direct."""
+    Each GROUP runs as a separate jobspy call (per search) because jobspy applies
+    one proxies=/results_wanted=/hours_old= per call: LinkedIn goes through
+    JOBSPY_PROXIES with a deep+wide pull, Indeed direct and lean."""
     by_id = {}
     proxies = _proxies()
     for role_type, term, google_term in SEARCHES:
-        for sites, px in ((PROXIED_SITES, proxies), (DIRECT_SITES, None)):
+        for g in GROUPS:
+            sites = g["sites"]
+            px = proxies if g["proxied"] else None
             try:
-                df = _scrape(sites, term, google_term, px)
+                df = _scrape(sites, term, google_term, g["results_wanted"], g["hours_old"], px)
             except Exception as e:
                 print(f"[jobspy] {role_type} {sites} scrape failed: {type(e).__name__}: {e}", file=sys.stderr)
                 continue
@@ -186,7 +195,7 @@ def main():
     found = scrape()
     existing = _existing_ids()           # snapshot the seen-set before upserting
     rows = list(found.values())
-    print(f"[jobspy] {len(rows)} jobs scraped across {len(PROXIED_SITES) + len(DIRECT_SITES)} boards")
+    print(f"[jobspy] {len(rows)} jobs scraped across {sum(len(g['sites']) for g in GROUPS)} boards")
     try:
         save(rows)
     except Exception as e:
