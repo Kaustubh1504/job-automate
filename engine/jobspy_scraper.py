@@ -1,20 +1,24 @@
 #!/usr/bin/env python3
 """Standalone JobSpy scraper -- like jobright.py, intentionally SEPARATE from the
-main engine. It aggregates keyword-search results from LinkedIn, Indeed
-and ZipRecruiter (via the python-jobspy library) into its own
-`jobspy_jobs` table and its own dashboard tab; it does NOT share the Listing
-format, the cross-source dedup, or the `jobs` table.
+main engine. It aggregates keyword-search results from LinkedIn and Indeed
+(via the python-jobspy library) into its own `jobspy_jobs` table and its own
+dashboard tab; it does NOT share the Listing format, the cross-source dedup, or
+the `jobs` table.
 
 What it does each run, per (role, search term):
-  - scrape the boards concurrently for recent US roles,
+  - scrape the boards for recent US roles,
   - upsert the results into `jobspy_jobs` (idempotent on jobspy's own job id),
   - announce only the newly-seen roles to Discord (backlog isn't blasted).
 
-Note: LinkedIn rate-limits hard on a single IP (no proxies configured), so it
-usually returns few rows -- Indeed/Google/ZipRecruiter carry the bulk.
+LinkedIn rate-limits hard on a single IP, so it's routed through rotating
+residential proxies (JOBSPY_PROXIES) to spread requests across IPs; Indeed works
+fine on the host IP and is scraped directly. (ZipRecruiter/Glassdoor were
+dropped: their APIs are Cloudflare-WAF-blocked regardless of proxy.)
 
 Run:  .venv/bin/python engine/jobspy_scraper.py
-Env:  SUPABASE_URL, SUPABASE_KEY (optional -- without them it only prints).
+Env:  SUPABASE_URL, SUPABASE_KEY (store; optional -- without them it only prints).
+      JOBSPY_PROXIES (optional, comma-separated user:pass@host:port) -- routed to
+      LinkedIn only; unset = scrape LinkedIn directly (no behavior change).
 """
 
 import math
@@ -34,9 +38,17 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import notifiers  # noqa: E402,F401  (importing registers every provider)
 from notifiers.base import get_notifier  # noqa: E402
 
-SITES = ["indeed", "linkedin", "zip_recruiter"]  # google removed for now
+PROXIED_SITES = ["linkedin"]  # rotated through JOBSPY_PROXIES to beat LinkedIn's per-IP rate limit
+DIRECT_SITES = ["indeed"]     # work fine on the host IP; no proxy needed
 RESULTS_WANTED = 50          # per site, per search
 HOURS_OLD = 24               # only roles posted in the last 24 hours
+
+
+def _proxies():
+    """JOBSPY_PROXIES (comma-separated user:pass@host:port) -> list, or None.
+    Unset means LinkedIn is scraped directly -- no behavior change."""
+    raw = os.environ.get("JOBSPY_PROXIES", "").strip()
+    return [p.strip() for p in raw.split(",") if p.strip()] or None
 
 # (role_type, indeed/linkedin search_term, google_search_term). Two searches:
 # intern and new-grad SWE in the US.
@@ -88,33 +100,44 @@ def _row(role_type, r):
     }
 
 
+def _scrape(sites, term, google_term, proxies):
+    return scrape_jobs(
+        site_name=sites,
+        search_term=term,
+        google_search_term=google_term,
+        location="United States",
+        results_wanted=RESULTS_WANTED,
+        hours_old=HOURS_OLD,
+        country_indeed="USA",
+        proxies=proxies,
+        verbose=0,
+    )
+
+
 def scrape():
-    """Return {id: row} for all scraped jobs, deduped by jobspy's job id."""
+    """Return {id: row} for all scraped jobs, deduped by jobspy's job id.
+
+    LinkedIn and Indeed run as separate calls because jobspy applies one
+    proxies= setting per call: LinkedIn goes through JOBSPY_PROXIES, Indeed
+    direct."""
     by_id = {}
+    proxies = _proxies()
     for role_type, term, google_term in SEARCHES:
-        try:
-            df = scrape_jobs(
-                site_name=SITES,
-                search_term=term,
-                google_search_term=google_term,
-                location="United States",
-                results_wanted=RESULTS_WANTED,
-                hours_old=HOURS_OLD,
-                country_indeed="USA",
-                verbose=0,
-            )
-        except Exception as e:
-            print(f"[jobspy] {role_type} scrape failed: {type(e).__name__}: {e}", file=sys.stderr)
-            continue
-        n = 0
-        for _, r in df.iterrows():
-            d = r.to_dict()
-            if not d.get("id"):
+        for sites, px in ((PROXIED_SITES, proxies), (DIRECT_SITES, None)):
+            try:
+                df = _scrape(sites, term, google_term, px)
+            except Exception as e:
+                print(f"[jobspy] {role_type} {sites} scrape failed: {type(e).__name__}: {e}", file=sys.stderr)
                 continue
-            by_id.setdefault(d["id"], _row(role_type, d))  # first role wins on overlap
-            n += 1
-        per_site = df["site"].value_counts().to_dict() if len(df) else {}
-        print(f"[jobspy] {role_type}: {n} rows ({per_site})", file=sys.stderr)
+            n = 0
+            for _, r in df.iterrows():
+                d = r.to_dict()
+                if not d.get("id"):
+                    continue
+                by_id.setdefault(d["id"], _row(role_type, d))  # first role wins on overlap
+                n += 1
+            per_site = df["site"].value_counts().to_dict() if len(df) else {}
+            print(f"[jobspy] {role_type} {sites}: {n} rows ({per_site})", file=sys.stderr)
     return by_id
 
 
@@ -163,7 +186,7 @@ def main():
     found = scrape()
     existing = _existing_ids()           # snapshot the seen-set before upserting
     rows = list(found.values())
-    print(f"[jobspy] {len(rows)} jobs scraped across {len(SITES)} boards")
+    print(f"[jobspy] {len(rows)} jobs scraped across {len(PROXIED_SITES) + len(DIRECT_SITES)} boards")
     try:
         save(rows)
     except Exception as e:
@@ -176,7 +199,7 @@ def main():
         fresh = [SimpleNamespace(company=r["company"]) for r in rows if r["id"] not in existing]
         print(f"[jobspy] {len(fresh)} new since last run", file=sys.stderr)
         try:
-            get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** (LinkedIn/Indeed/ZipRecruiter)")
+            get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** (LinkedIn/Indeed)")
         except Exception as e:
             print(f"[jobspy] discord notify failed: {e}", file=sys.stderr)
 
