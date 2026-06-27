@@ -161,11 +161,18 @@ def scrape():
             "graphql-operation-type": "query",
             "x-csrf-token": csrf,
         }
+        auth_failed = False
         for role_type, query in SEARCHES:
             for p in range(MAX_PAGES):
                 res = page.evaluate(_PAGE_FETCH, {
                     "url": GRAPHQL_URL, "headers": headers,
                     "body": _body(query, _cursor(p * PER_PAGE))})
+                # A dead session is an SPA -- the page doesn't redirect to /login,
+                # GraphQL just 401/403s. That's our real expiry signal here.
+                if res["status"] in (401, 403):
+                    auth_failed = True
+                    print(f"[handshake] {role_type} p{p+1}: HTTP {res['status']} (auth)", file=sys.stderr)
+                    break
                 if res["status"] != 200 or not res.get("data"):
                     print(f"[handshake] {role_type} p{p+1}: HTTP {res['status']}", file=sys.stderr)
                     break
@@ -180,6 +187,15 @@ def scrape():
                 if len(edges) < PER_PAGE:        # last page for this search
                     break
                 time.sleep(random.uniform(*PAGE_PAUSE))
+            if auth_failed:
+                break
+
+        if auth_failed:
+            print("[handshake] session expired (GraphQL 401/403)", file=sys.stderr)
+            if status != "expired":          # alert once, on the transition
+                authsession.alert_expired(SOURCE)
+            authsession.save(SOURCE, cookies, "expired")
+            return {}
         # write the refreshed (sliding) session back to Supabase, mark active
         authsession.save(SOURCE, ctx.cookies(), "active", host=HOST)
     finally:
