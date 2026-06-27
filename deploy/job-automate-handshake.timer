@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the Handshake scraper every ~2-3h (jittered, human-like)
+
+[Timer]
+# Base fire at minute 20 of every 2nd hour (0:20, 2:20, 4:20, ...), plus up to
+# 1h of random delay -> runs land 2-3h apart at irregular times. Irregular
+# spacing is less bot-like than clockwork, and a 2-3h cadence keeps the sliding
+# session alive while staying well within normal human usage.
+OnCalendar=*-*-* 00/2:20:00
+RandomizedDelaySec=3600
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate-handshake.service
+
+[Install]
+WantedBy=timers.target

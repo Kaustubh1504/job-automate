@@ -1,0 +1,20 @@
+[Unit]
+Description=Handshake scraper (cloakbrowser -> handshake_jobs + Discord)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+# Drives a stealth headless browser (cloakbrowser) past Cloudflare, reads/writes
+# the session jar in Supabase (table `sessions`, source=handshake). Browser
+# launch + a few pages can be slow on the Pi, so a generous timeout.
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/handshake.py
+TimeoutStartSec=600
+
+# No [Install]: triggered by job-automate-handshake.timer (and runnable on demand
+# with `systemctl start job-automate-handshake.service`). Intentionally SEPARATE
+# pipeline/table, like jobright/jobspy.
