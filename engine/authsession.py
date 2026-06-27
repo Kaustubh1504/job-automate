@@ -22,7 +22,7 @@ import requests
 from cloakbrowser import launch_persistent_context
 
 # URL fragments that mean "we got bounced to a login/SSO page".
-LOGIN_MARKERS = ("login", "signin", "sign-in", "sso", "/auth/", "session/new")
+LOGIN_MARKERS = ("login", "signin", "sign-in", "sign_in", "sso", "/auth/", "session/new")
 
 
 def _sb():
