@@ -21,14 +21,25 @@ def _rest(table, params):
     url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if not (url and key):
         raise RuntimeError("Supabase creds not set")
-    r = requests.get(
-        f"{url.rstrip('/')}/rest/v1/{table}",
-        params=params,
-        headers={"apikey": key, "Authorization": f"Bearer {key}"},
-        timeout=30,
-    )
-    r.raise_for_status()
-    return r.json()
+    base = f"{url.rstrip('/')}/rest/v1/{table}"
+    auth = {"apikey": key, "Authorization": f"Bearer {key}"}
+    # PostgREST caps a response at ~1000 rows, so page through with the Range
+    # header until a short page -- the targets table now exceeds 3000 rows and an
+    # unpaginated read silently scraped only the first 1000.
+    page, start, out = 1000, 0, []
+    while True:
+        r = requests.get(
+            base, params=params,
+            headers={**auth, "Range-Unit": "items",
+                     "Range": f"{start}-{start + page - 1}"},
+            timeout=30,
+        )
+        r.raise_for_status()
+        batch = r.json()
+        out.extend(batch)
+        if len(batch) < page:
+            return out
+        start += page
 
 
 def _json(name):

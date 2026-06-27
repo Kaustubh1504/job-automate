@@ -11,3 +11,10 @@ state.json
 __pycache__/
 *.pyc
 .venv/
+
+# Experimentation scratch (slug CSVs, discover DBs, keep lists, tranco cache)
+tmp
+
+# Handshake session cookie jar (live auth — never commit)
+engine/handshake_cookies.json
+engine/handshake_profile/
