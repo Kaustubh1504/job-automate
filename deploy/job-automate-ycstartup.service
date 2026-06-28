@@ -1,0 +1,19 @@
+[Unit]
+Description=YC 'Work at a Startup' authed intern poll -> Supabase + Discord
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+# The "ycstartup" argument selects ONLY the ycstartup collector (its own state file).
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/run.py ycstartup
+# A run is a page GET + ~2 Algolia queries + ~5 hydrate POSTs (~seconds); a
+# couple of minutes of headroom is ample.
+TimeoutStartSec=180
+
+# No [Install]: triggered by job-automate-ycstartup.timer (and runnable on demand
+# with `systemctl start job-automate-ycstartup.service`).

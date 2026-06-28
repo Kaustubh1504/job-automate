@@ -82,9 +82,18 @@ NUWORKS_SOURCES = [
      "url": "https://northeastern-csm.symplicity.com/api/v2/jobs?targeted_academic_majors=0160&screen_school=0240&sort=%21postdate"},
 ]
 
+# YC 'Work at a Startup' (workatastartup.com): authed, Algolia-backed search.
+# Self-acquiring collector (page -> Algolia ids -> /companies/fetch), session in
+# the shared `sessions` table. Own randomized timer (run.py ycstartup), like
+# NUworks, to keep the multi-step footprint low and unpredictable.
+YCSTARTUP_SOURCES = [
+    {"name": "ycstartup", "collector": "ycstartup"},
+]
+
 STATE_FILE = Path(__file__).with_name("state.json")
 JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
 NUWORKS_STATE_FILE = Path(__file__).with_name("state-nuworks.json")
+YCSTARTUP_STATE_FILE = Path(__file__).with_name("state-ycstartup.json")
 
 
 def main(sources, state_file, with_stats=False, header=None, color=None):
@@ -142,5 +151,11 @@ if __name__ == "__main__":
         main(NUWORKS_SOURCES, NUWORKS_STATE_FILE,
              header="🚨🎓 NUWORKS — TOP-PRIORITY CO-OPS 🎓🚨",
              color=0xE11D48)
+    elif arg == "ycstartup":
+        # YC startups: its own YC-orange embed so it stands apart from NUworks
+        # (crimson) and the plain-text sources.
+        main(YCSTARTUP_SOURCES, YCSTARTUP_STATE_FILE,
+             header="🟧 YC STARTUPS — new intern roles 🟧",
+             color=0xFB651E)
     else:
         main(SOURCES, STATE_FILE)

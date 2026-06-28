@@ -1,0 +1,17 @@
+[Unit]
+Description=Run the YC startup poll hourly at a randomized 5-20 min offset
+
+[Timer]
+# Base fire time: :05 past every hour, plus RandomizedDelaySec=[0, 900s] on top,
+# so each run lands randomly between :05 and :20 past the hour. The :05 base
+# keeps it clear of the other timers (fast :25-:35, jobhive/nuworks :45-:60) so
+# they don't pile onto the Pi at once, and the jitter keeps the cadence
+# unpredictable + low-volume.
+OnCalendar=*-*-* *:05:00
+RandomizedDelaySec=900
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate-ycstartup.service
+
+[Install]
+WantedBy=timers.target
