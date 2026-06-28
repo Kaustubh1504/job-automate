@@ -44,6 +44,8 @@ SOURCES = [
      "url": f"{RAW}/SimplifyJobs/Summer2026-Internships/dev/.github/scripts/listings.json"},
     {"name": "vansh-intern", "role_type": "intern", "parser": "simplify_schema",
      "url": f"{RAW}/vanshb03/Summer2026-Internships/dev/.github/scripts/listings.json"},
+    {"name": "vansh-2027-intern", "role_type": "intern", "parser": "simplify_schema",
+     "url": f"{RAW}/vanshb03/Summer2027-Internships/dev/.github/scripts/listings.json"},
     {"name": "speedyapply-intern", "role_type": "intern", "parser": "speedyapply",
      "url": f"{RAW}/speedyapply/2026-SWE-College-Jobs/main/README.md"},
     {"name": "simplify-newgrad", "role_type": "newgrad", "parser": "simplify_schema",
