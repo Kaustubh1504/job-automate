@@ -48,6 +48,13 @@ SOURCES = [
      "url": f"{RAW}/vanshb03/Summer2027-Internships/dev/.github/scripts/listings.json"},
     {"name": "speedyapply-intern", "role_type": "intern", "parser": "speedyapply",
      "url": f"{RAW}/speedyapply/2026-SWE-College-Jobs/main/README.md"},
+    # Built In: one centralized national board (country=USA covers every metro);
+    # the builtin collector pages through all results. Add a sibling entry per
+    # category (engineering, ai-machine-learning, ...) by changing the path.
+    {"name": "builtin-engineering", "collector": "builtin",
+     "url": "https://builtin.com/jobs/engineering/internship/entry-level?daysSinceUpdated=1&country=USA&allLocations=true"},
+    {"name": "builtin-aiml", "collector": "builtin",
+     "url": "https://builtin.com/jobs/ai-machine-learning/internship/entry-level?daysSinceUpdated=1&country=USA&allLocations=true"},
     {"name": "simplify-newgrad", "role_type": "newgrad", "parser": "simplify_schema",
      "url": f"{RAW}/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json"},
     {"name": "vansh-newgrad", "role_type": "newgrad", "parser": "simplify_schema",
