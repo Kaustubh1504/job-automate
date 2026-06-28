@@ -15,6 +15,8 @@ resolved to its canonical builtin.com/job/<slug>/<id> URL; ids are deduped acros
 pages.
 """
 
+import random
+import time
 from urllib.parse import parse_qsl, urlencode, urljoin, urlparse, urlunparse
 
 from bs4 import BeautifulSoup
@@ -24,7 +26,8 @@ from fetcher.base import get_fetcher
 from listing import Listing
 
 HUB = "https://builtin.com"
-MAX_PAGES = 25          # safety ceiling; real daysSinceUpdated result sets end far sooner
+MAX_PAGES = 25            # safety ceiling; real daysSinceUpdated result sets end far sooner
+PAGE_PAUSE = (1.0, 3.0)   # human-like gap between page fetches (politeness / lighter footprint)
 
 
 def _page_url(base, page):
@@ -76,6 +79,8 @@ def collect(src):
     fetch = get_fetcher("requests")
     out = {}
     for page in range(1, MAX_PAGES + 1):
+        if page > 1:                              # jitter between pages, not before the first
+            time.sleep(random.uniform(*PAGE_PAUSE))
         resp = fetch.get(_page_url(src["url"], page))
         rows = list(_cards(resp.text))
         new = [l for l in rows if l.key not in out]
