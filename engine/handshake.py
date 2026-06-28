@@ -45,7 +45,7 @@ import authsession  # noqa: E402  (engine/ -- shared login-session plumbing)
 SOURCE = "handshake"
 
 HERE = Path(__file__).resolve().parent
-HOST = "https://northeastern.joinhandshake.com"
+HOST = "https://app.joinhandshake.com"
 GRAPHQL_URL = f"{HOST}/hs/graphql"
 QUERY = json.loads((HERE / "handshake_query.json").read_text())
 COOKIES_FILE = HERE / "handshake_cookies.json"   # seed only; profile persists after
