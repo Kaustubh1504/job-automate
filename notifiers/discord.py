@@ -63,8 +63,19 @@ class DiscordNotifier:
     def __init__(self, webhook_url):
         self.webhook_url = webhook_url
 
-    def send(self, listings, header=None, stats=None):
+    def send(self, listings, header=None, stats=None, color=None):
         if not listings:
+            return
+        # A `color` turns the digest into a colored embed (a card with a side-bar
+        # + title) so a high-priority source stands out from the plain-text ones.
+        # The digest is small enough to fit one embed (4096-char description cap).
+        if color is not None:
+            body = "\n".join(_summary(listings, None, stats))[:4096]
+            embed = {"description": body, "color": color}
+            if header:
+                embed["title"] = header          # title is inherently bold; pass plain text
+            resp = requests.post(self.webhook_url, json={"embeds": [embed]}, timeout=30)
+            resp.raise_for_status()
             return
         for content in _batch(_summary(listings, header, stats), MAX_CHARS):
             resp = requests.post(self.webhook_url, json={"content": content}, timeout=30)

@@ -1,0 +1,18 @@
+[Unit]
+Description=NUworks (Northeastern Symplicity) authed job poll -> Supabase + Discord
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+# The "nuworks" argument selects ONLY the nuworks collector (its own state file).
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/run.py nuworks
+# A run is 3 sequential API pages (~seconds); a minute of headroom is ample.
+TimeoutStartSec=120
+
+# No [Install]: triggered by job-automate-nuworks.timer (and runnable on demand
+# with `systemctl start job-automate-nuworks.service`).

@@ -1,8 +1,9 @@
 # Secrets — never commit
 .env
 
-# Local state written by the pollers
+# Local state written by the pollers (state.json, state-jobhive.json, state-nuworks.json, ...)
 state.json
+state-*.json
 
 # Cached jobhive companies dataset (re-downloaded on demand)
 .cache/

@@ -70,11 +70,24 @@ JOBHIVE_SOURCES = [
     {"name": "jobhive", "collector": "jobhive"},
 ]
 
+# NUworks (Northeastern Symplicity): authed JSON API, session in the shared
+# `sessions` table (cURL-paste recovery like Handshake). Runs on its OWN timer
+# (run.py nuworks) at a randomized 45-60 min offset to keep the polling cadence
+# low-volume and unpredictable -- it can't ride the fast poller's timer without
+# either firing hourly-on-the-dot or blocking the other fast sources. The URL
+# carries the major/school filter; the collector stamps role_type per listing
+# (co-op -> intern).
+NUWORKS_SOURCES = [
+    {"name": "nuworks", "collector": "nuworks",
+     "url": "https://northeastern-csm.symplicity.com/api/v2/jobs?targeted_academic_majors=0160&screen_school=0240&sort=%21postdate"},
+]
+
 STATE_FILE = Path(__file__).with_name("state.json")
 JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
+NUWORKS_STATE_FILE = Path(__file__).with_name("state-nuworks.json")
 
 
-def main(sources, state_file, with_stats=False):
+def main(sources, state_file, with_stats=False, header=None, color=None):
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         sys.exit("GITHUB_TOKEN not set")
@@ -106,7 +119,8 @@ def main(sources, state_file, with_stats=False):
         try:
             # The jobhive scrape-health line only makes sense on the jobhive run.
             get_notifier("discord")(webhook).send(
-                interns, stats=jobhive_stats if with_stats else None)
+                interns, stats=jobhive_stats if with_stats else None,
+                header=header, color=color)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 
@@ -117,7 +131,16 @@ if __name__ == "__main__":
     # discard -- the fast GitHub-repo / Built In poll:
     #   run.py           -> repo + Built In sources (fast, hourly)
     #   run.py jobhive   -> jobhive ATS scrape only (slow, its own 2h timer)
-    if len(sys.argv) > 1 and sys.argv[1] == "jobhive":
+    #   run.py nuworks   -> NUworks authed API only (its own randomized timer)
+    arg = sys.argv[1] if len(sys.argv) > 1 else ""
+    if arg == "jobhive":
         main(JOBHIVE_SOURCES, JOBHIVE_STATE_FILE, with_stats=True)
+    elif arg == "nuworks":
+        # NUworks is the highest-priority signal (Northeastern-exclusive co-ops),
+        # so its digest goes out as a crimson embed with a banner title to stand
+        # apart from every other source's plain-text message.
+        main(NUWORKS_SOURCES, NUWORKS_STATE_FILE,
+             header="🚨🎓 NUWORKS — TOP-PRIORITY CO-OPS 🎓🚨",
+             color=0xE11D48)
     else:
         main(SOURCES, STATE_FILE)
