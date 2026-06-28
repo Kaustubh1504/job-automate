@@ -39,15 +39,20 @@ const SESSION_SOURCES = ['handshake', 'ziprecruiter', 'glassdoor', 'nuworks', 'y
 // includes the httpOnly auth cookies (it reads the request the browser actually
 // sent, which JS/the console can't).
 function extractSession(text) {
+  // Capture up to the *matching* closing quote (\1), so a cookie value that
+  // contains the other quote type -- e.g. g_state={"i_l":0,...} inside a
+  // single-quoted curl -b '...' -- isn't truncated at that inner quote.
   const cm =
-    text.match(/-H\s*['"]cookie:\s*([^'"]+)['"]/i) || // curl  -H 'cookie: ...'
-    text.match(/\s-b\s*['"]([^'"]+)['"]/) ||          // curl  -b '...'
-    text.match(/"cookie"\s*:\s*"([^"]+)"/i) ||        // fetch  "cookie":"..."
-    text.match(/^\s*cookie:\s*(.+)$/im);              // raw header line
+    text.match(/-H\s*(['"])cookie:\s*([\s\S]*?)\1/i) || // curl  -H 'cookie: ...'
+    text.match(/\s-b\s*(['"])([\s\S]*?)\1/) ||          // curl  -b '...'
+    text.match(/"cookie"\s*:\s*"([\s\S]*?)"/i) ||       // fetch  "cookie":"..."
+    text.match(/^\s*cookie:\s*(.+)$/im);                // raw header line
   const hm = text.match(/https?:\/\/([^/'"\s]+)/i);   // first URL -> host
   if (!cm || !hm) return null;
   const host = `https://${hm[1]}`;
-  const cookies = cm[1]
+  // The cookie string is the last capture group (the quoted-curl patterns add a
+  // leading quote group; the fetch/raw patterns don't).
+  const cookies = cm[cm.length - 1]
     .trim()
     .split('; ')
     .filter((p) => p.includes('='))
