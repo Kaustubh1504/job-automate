@@ -59,19 +59,27 @@ SOURCES = [
      "url": f"{RAW}/SimplifyJobs/New-Grad-Positions/dev/.github/scripts/listings.json"},
     {"name": "vansh-newgrad", "role_type": "newgrad", "parser": "simplify_schema",
      "url": f"{RAW}/vanshb03/New-Grad-2027/dev/.github/scripts/listings.json"},
-    # Live per-company ATS scrape (no maintainer lag). Company list + keyword
-    # filter live in config/targets.json and config/keywords.json.
+]
+
+# jobhive (the live per-company ATS scrape, no maintainer lag) runs on its OWN
+# timer via `run.py jobhive`. The ~3,300-company scrape is slow, so isolating it
+# keeps the fast repo/Built In poll above from timing out -- and from discarding
+# its results if jobhive overruns. Company list + filter live in
+# config/targets.json and config/keywords.json.
+JOBHIVE_SOURCES = [
     {"name": "jobhive", "collector": "jobhive"},
 ]
+
 STATE_FILE = Path(__file__).with_name("state.json")
+JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
 
 
-def main():
+def main(sources, state_file, with_stats=False):
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         sys.exit("GITHUB_TOKEN not set")
 
-    new = list(poll_all(SOURCES, STATE_FILE, token))
+    new = list(poll_all(sources, state_file, token))
     # Tag the priority flag once so the store and the Discord summary share it.
     new = [dataclasses.replace(l, priority=is_priority(l)) for l in new]
 
@@ -96,10 +104,20 @@ def main():
     if webhook:
         interns = [l for l in new if l.role_type == "intern"]
         try:
-            get_notifier("discord")(webhook).send(interns, stats=jobhive_stats)
+            # The jobhive scrape-health line only makes sense on the jobhive run.
+            get_notifier("discord")(webhook).send(
+                interns, stats=jobhive_stats if with_stats else None)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
-    main()
+    # Two independently-scheduled groups (separate timers + state files) so the
+    # slow ~3,300-company jobhive ATS scrape can't delay -- or, on timeout,
+    # discard -- the fast GitHub-repo / Built In poll:
+    #   run.py           -> repo + Built In sources (fast, hourly)
+    #   run.py jobhive   -> jobhive ATS scrape only (slow, its own 2h timer)
+    if len(sys.argv) > 1 and sys.argv[1] == "jobhive":
+        main(JOBHIVE_SOURCES, JOBHIVE_STATE_FILE, with_stats=True)
+    else:
+        main(SOURCES, STATE_FILE)

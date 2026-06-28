@@ -1,5 +1,5 @@
 [Unit]
-Description=Job poller (GitHub repos + jobhive ATS scrape -> Supabase + Discord)
+Description=Fast job poller (GitHub repos + Built In -> Supabase + Discord)
 After=network-online.target
 Wants=network-online.target
 
@@ -9,9 +9,11 @@ User=rpi
 Group=rpi
 WorkingDirectory=/home/rpi/job-automate/engine
 EnvironmentFile=/home/rpi/job-automate/.env
+# No argument = the fast sources only (GitHub repos + Built In). jobhive's slow
+# ATS scrape now runs separately via job-automate-jobhive.service.
 ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/run.py
-# One run (per-company jitter + ATS scrape + retries) can exceed the 90s default.
-TimeoutStartSec=900
+# Fast sources finish in a couple of minutes; generous headroom.
+TimeoutStartSec=300
 
 # No [Install]: this is triggered by job-automate.timer (and runnable on demand
 # with `systemctl start job-automate.service`). run.py stays runnable manually too.

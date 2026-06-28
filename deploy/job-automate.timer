@@ -7,8 +7,8 @@ Description=Run the job poller hourly, 25-35 min past the hour (randomized)
 OnCalendar=*-*-* *:25:00
 # RandomizedDelaySec adds [0, 600s] ON TOP of the :25 base, so the actual run
 # lands in the 25-35 min window past the hour (RandomizedDelaySec alone is [0, X],
-# hence the :25 base offset). One timer covers BOTH github repos and jobhive,
-# since run.py runs them in a single process.
+# hence the :25 base offset). This timer drives only the fast sources; jobhive
+# has its own (job-automate-jobhive.timer).
 RandomizedDelaySec=600
 # Catch up a run missed during reboot/downtime.
 Persistent=true

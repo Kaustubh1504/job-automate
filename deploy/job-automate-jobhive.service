@@ -1,0 +1,19 @@
+[Unit]
+Description=jobhive ATS scrape (~3,300 companies -> Supabase + Discord)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+# The "jobhive" argument selects ONLY the jobhive collector (its own state file).
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/run.py jobhive
+# ~3,300 companies with per-company jitter + retries; at MAX_WORKERS=16 a run is
+# ~15-20 min, so an hour of headroom comfortably covers a slow run.
+TimeoutStartSec=3600
+
+# No [Install]: triggered by job-automate-jobhive.timer (and runnable on demand
+# with `systemctl start job-automate-jobhive.service`).

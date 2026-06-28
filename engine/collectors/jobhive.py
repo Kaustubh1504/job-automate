@@ -25,7 +25,7 @@ import us_location
 from collectors.base import register
 from listing import Listing
 
-MAX_WORKERS = 8
+MAX_WORKERS = 16            # ~3,300 targets; higher concurrency keeps the run well under its timeout
 JITTER_RANGE = (1.0, 5.0)   # seconds; randomized pause before each company scrape
 REQUEST_TIMEOUT = 120       # seconds; per-request timeout for every ATS scraper
 

@@ -1,0 +1,16 @@
+[Unit]
+Description=Run the jobhive ATS scrape every 2h (45-55 min past, randomized)
+
+[Timer]
+# Every 2nd hour at :45 past, plus up to 10 min jitter -> lands 45-55 min past.
+# The :45 base offsets it from the fast poller (:25-:35) so they don't overlap.
+# The ATS scrape is heavy (~3,300 companies), so 2h keeps the load reasonable
+# while still surfacing company-direct postings within a couple of hours.
+OnCalendar=*-*-* 0/2:45:00
+RandomizedDelaySec=600
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate-jobhive.service
+
+[Install]
+WantedBy=timers.target
