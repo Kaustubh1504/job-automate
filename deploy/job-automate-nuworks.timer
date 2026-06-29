@@ -1,13 +1,13 @@
 [Unit]
-Description=Run the NUworks poll hourly at a randomized 45-60 min offset
+Description=Run the NUworks poll every 30 min at a randomized offset
 
 [Timer]
-# Base fire time: :45 past every hour, plus RandomizedDelaySec=[0, 900s] on top,
-# so each run lands randomly between :45 and :60 past the hour -- i.e. a random
-# 45-60 min delay. Low-volume (3 API pages) plus unpredictable timing keeps the
-# polling well clear of anything that looks like automated abuse.
-OnCalendar=*-*-* *:45:00
-RandomizedDelaySec=900
+# Base fire times: :00 and :30 past every hour, plus RandomizedDelaySec=[0, 600s]
+# on top, so each run lands randomly within the :00-:10 and :30-:40 windows --
+# a ~30 min cadence with jitter. Low-volume (1 API call) plus unpredictable
+# timing keeps the polling well clear of anything that looks like automated abuse.
+OnCalendar=*-*-* *:00/30:00
+RandomizedDelaySec=600
 # Catch up a run missed during reboot/downtime.
 Persistent=true
 Unit=job-automate-nuworks.service
