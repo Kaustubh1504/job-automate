@@ -1,9 +1,13 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { groupByDay, formatDay, effectiveTs } from '../lib/batches';
 import JobrightView from './jobright/JobrightView';
 import JobspyView from './jobspy/JobspyView';
+import HandshakeView from './handshake/HandshakeView';
+import WellfoundView from './wellfound/WellfoundView';
+import InternView from './interns/InternView';
 
 const SINCE = [
   { label: 'Last 24h', hours: 24 },
@@ -13,10 +17,12 @@ const SINCE = [
 ];
 
 const TABS = [
+  { key: 'interns', label: 'All Interns' }, // consolidated across every board; rendered by InternView
   { key: 'all', label: 'All' },
-  { key: 'intern', label: 'Intern' },
-  { key: 'jobright', label: 'Jobright Interns' }, // separate table; rendered by JobrightPage
+  { key: 'jobright', label: 'Jobright' }, // separate table; rendered by JobrightView
   { key: 'jobspy', label: 'JobSpy' }, // separate table; rendered by JobspyView
+  { key: 'handshake', label: 'Handshake' }, // separate table; rendered by HandshakeView
+  { key: 'wellfound', label: 'Wellfound' }, // separate table; rendered by WellfoundView
   { key: 'newgrad', label: 'New Grad' },
 ];
 
@@ -45,10 +51,10 @@ export default function JobsPage() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sinceHours, setSinceHours] = useState(168);
+  const [sinceHours, setSinceHours] = useState(24);
   const [hideApplied, setHideApplied] = useState(true);
   const [priorityOnly, setPriorityOnly] = useState(false);
-  const [tab, setTab] = useState('all');
+  const [tab, setTab] = useState('interns');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -61,7 +67,8 @@ export default function JobsPage() {
       .limit(2000);
     if (sinceHours) {
       const since = new Date(Date.now() - sinceHours * 3600 * 1000).toISOString();
-      q = q.gte('first_seen', since);
+      // posted within the window; fall back to first_seen when posted_at is null
+      q = q.or(`posted_at.gte.${since},and(posted_at.is.null,first_seen.gte.${since})`);
     }
     if (priorityOnly) q = q.eq('priority', true);
     const { data, error } = await q;
@@ -133,10 +140,16 @@ export default function JobsPage() {
         ))}
       </div>
 
-      {tab === 'jobright' ? (
+      {tab === 'interns' ? (
+        <InternView />
+      ) : tab === 'jobright' ? (
         <JobrightView />
       ) : tab === 'jobspy' ? (
         <JobspyView />
+      ) : tab === 'handshake' ? (
+        <HandshakeView />
+      ) : tab === 'wellfound' ? (
+        <WellfoundView />
       ) : (
         <>
       <div className="mb-4 flex flex-wrap items-center gap-4">
@@ -187,7 +200,14 @@ export default function JobsPage() {
             </tr>
           </thead>
           <tbody>
-            {visible.map((j) => (
+            {groupByDay(visible, effectiveTs).map((batch, bi) => (
+              <Fragment key={`day-${bi}`}>
+                <tr className="bg-gray-100/70">
+                  <td colSpan={10} className="border-y px-3 py-1.5 text-xs font-semibold text-gray-600">
+                    📅 {formatDay(batch.ts)} · {batch.rows.length} {batch.rows.length === 1 ? 'job' : 'jobs'}
+                  </td>
+                </tr>
+                {batch.rows.map((j) => (
               <tr key={j.id} className={`border-b last:border-0 ${j.priority ? 'bg-amber-50' : ''}`}>
                 <td className="px-3 py-2" title={j.priority ? 'Priority / referral target' : ''}>
                   {j.priority ? '⭐' : ''}
@@ -219,6 +239,8 @@ export default function JobsPage() {
                   <button onClick={() => remove(j)} title="Delete from table" className="text-gray-400 hover:text-red-600">✕</button>
                 </td>
               </tr>
+                ))}
+              </Fragment>
             ))}
             {!loading && visible.length === 0 && (
               <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">No jobs match these filters.</td></tr>

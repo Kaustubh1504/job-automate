@@ -1,7 +1,8 @@
 'use client';
 
-import { useCallback, useEffect, useState } from 'react';
+import { Fragment, useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
+import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 
 // JobSpy keyword-search results (LinkedIn/Indeed/ZipRecruiter/Google). Own table,
 // rendered as the "JobSpy" tab on the Jobs page -- separate from the main jobs
@@ -42,7 +43,7 @@ export default function JobspyView() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sinceHours, setSinceHours] = useState(168);
+  const [sinceHours, setSinceHours] = useState(24);
   const [hideApplied, setHideApplied] = useState(true);
   const [tab, setTab] = useState('all');
 
@@ -57,7 +58,8 @@ export default function JobspyView() {
       .limit(2000);
     if (sinceHours) {
       const since = new Date(Date.now() - sinceHours * 3600 * 1000).toISOString();
-      q = q.gte('first_seen', since);
+      // posted within the window; fall back to first_seen when posted_at is null
+      q = q.or(`posted_at.gte.${since},and(posted_at.is.null,first_seen.gte.${since})`);
     }
     const { data, error } = await q;
     if (error) setError(error.message);
@@ -125,7 +127,7 @@ export default function JobspyView() {
 
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <label className="text-sm">
-          Seen within{' '}
+          Posted within{' '}
           <select
             className="rounded border px-2 py-1"
             value={sinceHours ?? 'all'}
@@ -168,7 +170,14 @@ export default function JobspyView() {
             </tr>
           </thead>
           <tbody>
-            {visible.map((j) => (
+            {groupByDay(visible, effectiveTs).map((batch, bi) => (
+              <Fragment key={`day-${bi}`}>
+                <tr className="bg-gray-100/70">
+                  <td colSpan={11} className="border-y px-3 py-1.5 text-xs font-semibold text-gray-600">
+                    📅 {formatDay(batch.ts)} · {batch.rows.length} {batch.rows.length === 1 ? 'job' : 'jobs'}
+                  </td>
+                </tr>
+                {batch.rows.map((j) => (
               <tr key={j.id} className="border-b last:border-0">
                 <td className="px-3 py-2 font-medium">{j.company}</td>
                 <td className="px-3 py-2">
@@ -199,6 +208,8 @@ export default function JobspyView() {
                   <button onClick={() => remove(j)} title="Delete from table" className="text-gray-400 hover:text-red-600">✕</button>
                 </td>
               </tr>
+                ))}
+              </Fragment>
             ))}
             {!loading && visible.length === 0 && (
               <tr><td colSpan={11} className="px-3 py-6 text-center text-gray-500">No JobSpy jobs match these filters.</td></tr>

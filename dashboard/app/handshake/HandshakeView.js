@@ -4,9 +4,8 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 
-// Shared jobright view, reused by the /jobright route and the "Jobright Interns"
-// tab on the Jobs page. jobright has its own table and its own H1B column, so it
-// renders separately rather than merging into the main jobs table.
+// Handshake has its own table (handshake_jobs) with an H1B/OPT sponsorship
+// signal, so it renders separately like the jobright/jobspy views.
 const SINCE = [
   { label: 'Last 24h', hours: 24 },
   { label: 'Last 7 days', hours: 168 },
@@ -15,26 +14,25 @@ const SINCE = [
 ];
 
 const TWO_HOURS = 2 * 3600 * 1000;
-// Posted within the last 2h -> show a NEW badge.
 function isNew(job) {
   return job.posted_at && Date.now() - new Date(job.posted_at).getTime() < TWO_HOURS;
 }
 
-export default function JobrightView() {
+export default function HandshakeView() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [sinceHours, setSinceHours] = useState(24);
   const [hideApplied, setHideApplied] = useState(true);
-  const [hideUnsure, setHideUnsure] = useState(false);
+  const [sponsorOnly, setSponsorOnly] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
     setError(null);
     let q = supabase
-      .from('jobright_jobs')
+      .from('handshake_jobs')
       .select('*')
-      .not('dismissed', 'is', true) // hide soft-deleted rows (false or null shown)
+      .not('dismissed', 'is', true)
       .order('first_seen', { ascending: false })
       .limit(2000);
     if (sinceHours) {
@@ -42,12 +40,12 @@ export default function JobrightView() {
       // posted within the window; fall back to first_seen when posted_at is null
       q = q.or(`posted_at.gte.${since},and(posted_at.is.null,first_seen.gte.${since})`);
     }
-    if (hideUnsure) q = q.eq('h1b_sponsored', 'Yes');
+    if (sponsorOnly) q = q.eq('sponsors_h1b', true);
     const { data, error } = await q;
     if (error) setError(error.message);
     setJobs(data || []);
     setLoading(false);
-  }, [sinceHours, hideUnsure]);
+  }, [sinceHours, sponsorOnly]);
 
   useEffect(() => {
     load();
@@ -56,19 +54,17 @@ export default function JobrightView() {
   async function toggle(job, field) {
     const value = !job[field];
     setJobs((js) => js.map((j) => (j.id === job.id ? { ...j, [field]: value } : j)));
-    const { error } = await supabase.from('jobright_jobs').update({ [field]: value }).eq('id', job.id);
+    const { error } = await supabase.from('handshake_jobs').update({ [field]: value }).eq('id', job.id);
     if (error) {
       setError(error.message);
       load();
     }
   }
 
-  // Soft-delete: mark dismissed so the next jobright scrape (which re-upserts
-  // everything) can't resurrect it. Upserts leave `dismissed` untouched.
   async function remove(job) {
     if (!window.confirm(`Remove "${job.title}" at ${job.company}? It won't come back.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
-    const { error } = await supabase.from('jobright_jobs').update({ dismissed: true }).eq('id', job.id);
+    const { error } = await supabase.from('handshake_jobs').update({ dismissed: true }).eq('id', job.id);
     if (error) {
       setError(error.message);
       load();
@@ -97,8 +93,8 @@ export default function JobrightView() {
           Hide applied
         </label>
         <label className="flex items-center gap-1 text-sm">
-          <input type="checkbox" checked={hideUnsure} onChange={(e) => setHideUnsure(e.target.checked)} />
-          H1B = Yes only
+          <input type="checkbox" checked={sponsorOnly} onChange={(e) => setSponsorOnly(e.target.checked)} />
+          Sponsors H1B only
         </label>
         <button onClick={load} className="rounded border bg-white px-3 py-1 text-sm hover:bg-gray-100">
           Refresh
@@ -119,7 +115,6 @@ export default function JobrightView() {
               <th className="px-3 py-2">Location</th>
               <th className="px-3 py-2">Salary</th>
               <th className="px-3 py-2">H1B</th>
-              <th className="px-3 py-2">Work</th>
               <th className="px-3 py-2">Posted</th>
               <th className="px-3 py-2">Apply</th>
               <th className="px-3 py-2 text-center">Applied</th>
@@ -131,12 +126,12 @@ export default function JobrightView() {
             {groupByDay(visible, effectiveTs).map((batch, bi) => (
               <Fragment key={`day-${bi}`}>
                 <tr className="bg-gray-100/70">
-                  <td colSpan={11} className="border-y px-3 py-1.5 text-xs font-semibold text-gray-600">
+                  <td colSpan={10} className="border-y px-3 py-1.5 text-xs font-semibold text-gray-600">
                     📅 {formatDay(batch.ts)} · {batch.rows.length} {batch.rows.length === 1 ? 'job' : 'jobs'}
                   </td>
                 </tr>
                 {batch.rows.map((j) => (
-              <tr key={j.id} className={`border-b last:border-0 ${j.h1b_sponsored === 'Yes' ? 'bg-green-50' : ''}`}>
+              <tr key={j.id} className={`border-b last:border-0 ${j.sponsors_h1b ? 'bg-green-50' : ''}`}>
                 <td className="px-3 py-2 font-medium">{j.company}</td>
                 <td className="px-3 py-2">
                   {j.title}
@@ -145,11 +140,10 @@ export default function JobrightView() {
                 <td className="px-3 py-2 text-gray-600">{j.location || '—'}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-gray-600">{j.salary || '—'}</td>
                 <td className="px-3 py-2 whitespace-nowrap">
-                  <span className={j.h1b_sponsored === 'Yes' ? 'text-green-700' : 'text-gray-500'}>
-                    {j.h1b_sponsored || '—'}
+                  <span className={j.sponsors_h1b ? 'text-green-700' : 'text-gray-500'}>
+                    {j.sponsors_h1b === true ? 'Yes' : j.sponsors_h1b === false ? 'No' : '—'}
                   </span>
                 </td>
-                <td className="px-3 py-2 text-gray-600">{j.work_model || '—'}</td>
                 <td className="px-3 py-2 whitespace-nowrap text-gray-500">
                   {j.posted_at ? new Date(j.posted_at).toLocaleDateString() : '—'}
                 </td>
@@ -174,7 +168,7 @@ export default function JobrightView() {
               </Fragment>
             ))}
             {!loading && visible.length === 0 && (
-              <tr><td colSpan={11} className="px-3 py-6 text-center text-gray-500">No jobright jobs match these filters.</td></tr>
+              <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">No Handshake jobs match these filters.</td></tr>
             )}
           </tbody>
         </table>

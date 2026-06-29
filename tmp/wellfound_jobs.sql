@@ -13,7 +13,10 @@ create table if not exists public.wellfound_jobs (
   posted_at     timestamptz,             -- from the listing's liveStartAt (unix)
   apply_url     text,
   role_type     text,                    -- 'intern'
+  applied       boolean default false,   -- dashboard toggle; survives re-upserts
+  referred      boolean default false,   -- dashboard toggle; survives re-upserts
   dismissed     boolean default false,   -- soft-delete; survives re-upserts
+  first_seen    timestamptz default now(),  -- set once on insert (run-divider key)
   updated_at    timestamptz default now()
 );
 
