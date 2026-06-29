@@ -19,3 +19,5 @@ tmp
 # Handshake session cookie jar (live auth — never commit)
 engine/handshake_cookies.json
 engine/handshake_profile/
+
+engine/wellfound_profile/

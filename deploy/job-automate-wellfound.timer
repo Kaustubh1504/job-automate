@@ -1,0 +1,17 @@
+[Unit]
+Description=Run the Wellfound scraper every ~2-3h (jittered, human-like)
+
+[Timer]
+# Base fire at minute 40 of every odd hour (1:40, 3:40, 5:40, ...), plus up to
+# 1h of random delay -> runs land 2-3h apart at irregular times. Odd hours
+# interleave with the Handshake browser job (even hours), so the two heavy
+# cloakbrowser runs don't pile onto the Pi together. DataDome is aggressive, so
+# an irregular, low-frequency cadence keeps us well clear of bot heuristics.
+OnCalendar=*-*-* 01/2:40:00
+RandomizedDelaySec=3600
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate-wellfound.service
+
+[Install]
+WantedBy=timers.target

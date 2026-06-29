@@ -32,7 +32,7 @@ function Section({ title, hint, children }) {
 }
 
 // Login-protected sources whose sessions the scrapers refresh from a pasted cURL.
-const SESSION_SOURCES = ['handshake', 'ziprecruiter', 'glassdoor', 'nuworks', 'ycstartup'];
+const SESSION_SOURCES = ['handshake', 'ziprecruiter', 'glassdoor', 'nuworks', 'ycstartup', 'wellfound'];
 
 // Pull the cookie jar + host out of a pasted cURL / copy-as-fetch / raw cookie
 // header. Works for ANY source: the host is read from the request URL, and it

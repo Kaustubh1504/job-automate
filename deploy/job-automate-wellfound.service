@@ -1,0 +1,21 @@
+[Unit]
+Description=Wellfound scraper (cloakbrowser -> wellfound_jobs + Discord)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+# Drives a stealth headless browser (cloakbrowser) past DataDome + Cloudflare,
+# reads/writes the session jar in Supabase (table `sessions`, source=wellfound),
+# and parses the SSR'd job feed from the DOM. Browser launch can be slow on the
+# Pi, so a generous timeout.
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/wellfound.py
+TimeoutStartSec=600
+
+# No [Install]: triggered by job-automate-wellfound.timer (and runnable on demand
+# with `systemctl start job-automate-wellfound.service`). Intentionally SEPARATE
+# pipeline/table, like handshake/jobright/jobspy.
