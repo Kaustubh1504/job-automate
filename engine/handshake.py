@@ -28,6 +28,7 @@ import random
 import sys
 import time
 from base64 import b64encode
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -209,11 +210,11 @@ def _existing_ids():
         return None
     try:
         r = requests.get(f"{url.rstrip('/')}/rest/v1/handshake_jobs",
-                         params={"select": "id"},
+                         params={"select": "id,batch_id"},
                          headers={"apikey": key, "Authorization": f"Bearer {key}"},
                          timeout=30)
         r.raise_for_status()
-        return {row["id"] for row in r.json()}
+        return {row["id"]: row.get("batch_id") for row in r.json()}
     except Exception as e:
         print(f"[handshake] couldn't read existing ids: {e}", file=sys.stderr)
         return None
@@ -241,6 +242,13 @@ def main():
     existing = _existing_ids()           # snapshot before upserting
     rows = list(found.values())
     print(f"[handshake] {len(rows)} roles scraped")
+    # Stamp this run's NEW rows with a shared batch_id so /handshake?batch=<id> can
+    # highlight them; re-seen rows keep their original stamp. Skipped when the
+    # seen-set is unknown (existing is None) so we don't clobber stamps blindly.
+    batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    if existing is not None:
+        for r in rows:
+            r["batch_id"] = existing.get(r["id"], batch_id)
     try:
         save(rows)
     except Exception as e:
@@ -253,7 +261,7 @@ def main():
         print(f"[handshake] {len(fresh)} new intern roles since last run", file=sys.stderr)
         try:
             get_notifier("discord")(webhook).send(
-                fresh, header="\U0001f393 **Handshake** new interns")
+                fresh, header="\U0001f393 **Handshake** new interns", path="/handshake", batch_id=batch_id)
         except Exception as e:
             print(f"[handshake] discord notify failed: {e}", file=sys.stderr)
 

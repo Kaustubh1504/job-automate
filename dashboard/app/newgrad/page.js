@@ -1,5 +1,11 @@
+import { Suspense } from 'react';
 import JobsTableView from '../jobs/JobsTableView';
 
+// Suspense boundary: JobsTableView reads ?batch= via useSearchParams.
 export default function Page() {
-  return <JobsTableView role="newgrad" />;
+  return (
+    <Suspense>
+      <JobsTableView role="newgrad" />
+    </Suspense>
+  );
 }

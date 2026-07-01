@@ -25,6 +25,7 @@ import math
 import os
 import re
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -159,21 +160,22 @@ def scrape():
 
 
 def _existing_ids():
-    """ids already in jobspy_jobs (the seen-set), or None if we can't tell (no
-    creds / read failed) -- in which case we don't announce, to avoid blasting
-    the whole backlog."""
+    """{id: batch_id} already in jobspy_jobs (the seen-set + each row's run stamp),
+    or None if we can't tell (no creds / read failed) -- in which case we don't
+    announce, to avoid blasting the whole backlog. The batch_id lets us preserve a
+    re-seen row's original run stamp on re-upsert."""
     url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if not (url and key):
         return None
     try:
         r = requests.get(
             f"{url.rstrip('/')}/rest/v1/jobspy_jobs",
-            params={"select": "id"},
+            params={"select": "id,batch_id"},
             headers={"apikey": key, "Authorization": f"Bearer {key}"},
             timeout=30,
         )
         r.raise_for_status()
-        return {row["id"] for row in r.json()}
+        return {row["id"]: row.get("batch_id") for row in r.json()}
     except Exception as e:
         print(f"[jobspy] couldn't read existing ids: {e}", file=sys.stderr)
         return None
@@ -204,6 +206,13 @@ def main():
     existing = _existing_ids()           # snapshot the seen-set before upserting
     rows = list(found.values())
     print(f"[jobspy] {len(rows)} jobs scraped across {sum(len(g['sites']) for g in GROUPS)} boards")
+    # Stamp this run's NEW rows with a shared batch_id so /jobspy?batch=<id> can
+    # highlight them; re-seen rows keep their original stamp. Skipped when the
+    # seen-set is unknown (existing is None) so we don't clobber stamps blindly.
+    batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    if existing is not None:
+        for r in rows:
+            r["batch_id"] = existing.get(r["id"], batch_id)
     try:
         save(rows)
     except Exception as e:
@@ -222,7 +231,7 @@ def main():
         ]
         print(f"[jobspy] {len(fresh)} new intern roles since last run", file=sys.stderr)
         try:
-            get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** new interns (LinkedIn/Indeed)")
+            get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** new interns (LinkedIn/Indeed)", path="/jobspy", batch_id=batch_id)
         except Exception as e:
             print(f"[jobspy] discord notify failed: {e}", file=sys.stderr)
 

@@ -149,7 +149,7 @@ def main(sources, state_file, with_stats=False, header=None, color=None):
             # The jobhive scrape-health line only makes sense on the jobhive run.
             get_notifier("discord")(webhook).send(
                 interns, stats=jobhive_stats if with_stats else None,
-                header=header, color=color, batch_id=batch_id)
+                header=header, color=color, path="/all", batch_id=batch_id)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 

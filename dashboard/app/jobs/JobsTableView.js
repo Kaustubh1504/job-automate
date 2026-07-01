@@ -1,6 +1,8 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useState } from 'react';
+import Link from 'next/link';
+import { usePathname, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 
@@ -42,6 +44,11 @@ export default function JobsTableView({ role }) {
   const [sinceHours, setSinceHours] = useState(24);
   const [hideApplied, setHideApplied] = useState(true);
   const [priorityOnly, setPriorityOnly] = useState(false);
+  // Discord deep-link: /all?batch=<run id>. Every `jobs` row carries batch_id, so
+  // we highlight the ones this scrape found. Named batchId to avoid shadowing the
+  // day-group `batch` in the render below.
+  const batchId = useSearchParams().get('batch');
+  const pathname = usePathname();
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -94,9 +101,19 @@ export default function JobsTableView({ role }) {
 
   const available = hideApplied ? jobs.filter((j) => !j.applied) : jobs;
   const visible = role === 'all' ? available : available.filter((j) => roleOf(j) === role);
+  const hotCount = batchId ? visible.filter((j) => j.batch_id === batchId).length : 0;
 
   return (
     <div>
+      {batchId && (
+        <div className="mb-3 flex items-center gap-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
+          <span>
+            ✨ Highlighting {hotCount} {hotCount === 1 ? 'role' : 'roles'} from this scrape
+            {hotCount === 0 ? ' (none in the current window — try a wider "Posted within")' : ''}.
+          </span>
+          <Link href={pathname} className="ml-auto text-blue-600 hover:underline">Clear</Link>
+        </div>
+      )}
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <label className="text-sm">
           Posted within{' '}
@@ -153,7 +170,16 @@ export default function JobsTableView({ role }) {
                   </td>
                 </tr>
                 {batch.rows.map((j) => (
-                  <tr key={j.id} className={`border-b last:border-0 ${j.priority ? 'bg-amber-50' : ''}`}>
+                  <tr
+                    key={j.id}
+                    className={`border-b last:border-0 ${
+                      batchId && j.batch_id === batchId
+                        ? 'bg-amber-100 ring-1 ring-inset ring-amber-300'
+                        : j.priority
+                        ? 'bg-amber-50'
+                        : ''
+                    }`}
+                  >
                     <td className="px-3 py-2" title={j.priority ? 'Priority / referral target' : ''}>
                       {j.priority ? '⭐' : ''}
                     </td>

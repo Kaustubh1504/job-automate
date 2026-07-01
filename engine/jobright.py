@@ -105,21 +105,22 @@ def _row(type_, category, j):
 
 
 def _existing_ids():
-    """ids already in jobright_jobs (the seen-set used to find new postings), or
-    None if we can't tell (no creds / read failed) -- in which case we don't
-    announce, to avoid blasting the whole backlog."""
+    """{id: batch_id} already in jobright_jobs (the seen-set + each row's run stamp),
+    or None if we can't tell (no creds / read failed) -- in which case we don't
+    announce, to avoid blasting the whole backlog. The batch_id lets us preserve a
+    re-seen row's original run stamp on re-upsert."""
     url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if not (url and key):
         return None
     try:
         r = requests.get(
             f"{url.rstrip('/')}/rest/v1/jobright_jobs",
-            params={"select": "id"},
+            params={"select": "id,batch_id"},
             headers={"apikey": key, "Authorization": f"Bearer {key}"},
             timeout=30,
         )
         r.raise_for_status()
-        return {row["id"] for row in r.json()}
+        return {row["id"]: row.get("batch_id") for row in r.json()}
     except Exception as e:
         print(f"[jobright] couldn't read existing ids: {e}", file=sys.stderr)
         return None
@@ -152,6 +153,13 @@ def main():
     for r in rows:
         print(f"  {r['company']} | {r['title']} | h1b={r['h1b_sponsored']} | {r['apply_url']}")
     print(f"[jobright] {len(rows)} jobs kept (H1B-sponsoring or unknown)")
+    # Stamp this run's NEW rows with a shared batch_id so /jobright?batch=<id> can
+    # highlight them; re-seen rows keep their original stamp. Skipped when the
+    # seen-set is unknown (existing is None) so we don't clobber stamps blindly.
+    batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
+    if existing is not None:
+        for r in rows:
+            r["batch_id"] = existing.get(r["id"], batch_id)
     try:
         save(rows)
     except Exception as e:
@@ -166,7 +174,7 @@ def main():
                  if j["id"] not in existing]
         print(f"[jobright] {len(fresh)} new since last run", file=sys.stderr)
         try:
-            get_notifier("discord")(webhook).send(fresh, header="\U0001f7e2 **Jobright interns**")
+            get_notifier("discord")(webhook).send(fresh, header="\U0001f7e2 **Jobright interns**", path="/jobright", batch_id=batch_id)
         except Exception as e:
             print(f"[jobright] discord notify failed: {e}", file=sys.stderr)
 

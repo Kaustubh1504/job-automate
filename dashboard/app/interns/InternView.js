@@ -1,8 +1,6 @@
 'use client';
 
 import { Fragment, useCallback, useEffect, useState } from 'react';
-import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 
@@ -48,10 +46,6 @@ export default function InternView() {
   const [error, setError] = useState(null);
   const [sinceHours, setSinceHours] = useState(24);
   const [hideApplied, setHideApplied] = useState(true);
-  // Discord deep-link: /interns?batch=<run id>. Rows from the main `jobs` table
-  // carry batch_id, so we highlight the ones this scrape found. Named batchId (not
-  // batch) to avoid shadowing the day-group `batch` in the render below.
-  const batchId = useSearchParams().get('batch');
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -90,7 +84,6 @@ export default function InternView() {
           apply_url: r.apply_url,
           posted_at: r.posted_at,
           first_seen: r.first_seen,
-          batch_id: r.batch_id, // only the `jobs` table has this; others -> undefined
           board: b.board(r),
           applied: r.applied,
           referred: r.referred,
@@ -145,19 +138,9 @@ export default function InternView() {
   }
 
   const visible = hideApplied ? rows.filter((r) => !r.applied) : rows;
-  const hotCount = batchId ? visible.filter((r) => r.batch_id === batchId).length : 0;
 
   return (
     <div>
-      {batchId && (
-        <div className="mb-3 flex items-center gap-3 rounded border border-amber-300 bg-amber-50 px-3 py-2 text-sm text-amber-800">
-          <span>
-            ✨ Highlighting {hotCount} {hotCount === 1 ? 'role' : 'roles'} from this scrape
-            {hotCount === 0 ? ' (none in the current window — try a wider "Posted within")' : ''}.
-          </span>
-          <Link href="/interns" className="ml-auto text-blue-600 hover:underline">Clear</Link>
-        </div>
-      )}
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <label className="text-sm">
           Posted within{' '}
@@ -210,12 +193,7 @@ export default function InternView() {
                   </td>
                 </tr>
                 {batch.rows.map((r) => (
-                  <tr
-                    key={r.key}
-                    className={`border-b last:border-0 ${
-                      batchId && r.batch_id === batchId ? 'bg-amber-100 ring-1 ring-inset ring-amber-300' : ''
-                    }`}
-                  >
+                  <tr key={r.key} className="border-b last:border-0">
                     <td className="px-3 py-2">
                       <span className="rounded bg-gray-100 px-1.5 py-0.5 text-xs text-gray-600">{r.board}</span>
                     </td>
