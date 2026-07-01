@@ -1,5 +1,5 @@
 {
-  "_comment": "Title keyword filter for jobhive ATS results (a company's ATS returns ALL roles). Case-insensitive substring match on the job TITLE only. A job is kept if it matches any 'include' term AND no 'exclude' term. Empty 'include' = keep everything. Edit freely to match the roles you want.",
+  "_comment": "Software-domain title gate, shared by jobhive + the un-scoped board feeds (builtin-*, simplify-newgrad) via config_store.wanted(). Include-match at a word start on the job TITLE: a role is kept only if it names an actual software domain AND hits no 'exclude' term. These are DOMAIN terms only -- seniority words (intern, new grad, entry level, ...) are deliberately absent so a non-software entry-level/new-grad role (sales, nursing, mechanical eng) is dropped. Fallback only: the live source of truth is the Supabase 'keywords' table.",
   "include": [
     "software engineer", "software developer", "swe", "backend", "back end",
     "frontend", "front end", "full stack", "fullstack", "web developer",
@@ -7,9 +7,7 @@
     "ai engineer", "applied scientist", "research engineer", "research scientist",
     "platform engineer", "infrastructure engineer", "systems engineer",
     "security engineer", "mobile engineer", "android engineer", "ios engineer",
-    "site reliability", "devops",
-    "intern", "new grad", "new graduate", "early career", "university graduate",
-    "entry level", "associate engineer", "ai", "ml", "data"
+    "site reliability", "devops"
   ],
   "exclude": [
     "senior", "staff", "principal", "director", "vice president", "head of",

@@ -88,6 +88,27 @@ def excluded(title, exclude=None):
     return any(re.search(rf"\b{re.escape(x.lower())}\b", t) for x in exclude)
 
 
+def wanted(title, include=None, exclude=None):
+    """True if `title` should be kept: it contains no exclude term and (when an
+    include list is set) matches an include term at a word start. The shared
+    software-domain title gate -- with the seniority-only terms ("intern", "new
+    grad", "entry level", ...) removed from `include`, a match now requires an
+    actual software term, so non-software entry-level/new-grad roles (sales,
+    nursing, mechanical/electrical eng, analysts) are dropped. `include`/`exclude`
+    default to keywords(); pass a preloaded pair to skip the fetch.
+
+    Include matches at a word start so short tokens like "swe" catch real roles
+    without matching mid-word; exclude is the whole-word rule in excluded()."""
+    if include is None or exclude is None:
+        inc, exc = keywords()
+        include = inc if include is None else include
+        exclude = exc if exclude is None else exclude
+    if excluded(title, exclude):
+        return False
+    t = (title or "").lower()
+    return not include or any(re.search(rf"\b{re.escape(i.lower())}", t) for i in include)
+
+
 def priority():
     """(hourly_threshold, allowlist_company_names) for the priority tag."""
     try:

@@ -13,7 +13,6 @@ Company list and filter live at the project root:
 """
 
 import random
-import re
 import sys
 import time
 from concurrent.futures import ThreadPoolExecutor, as_completed
@@ -41,16 +40,6 @@ def _load_targets():
 def _load_filter():
     include, exclude = config_store.keywords()
     return [w.lower() for w in include], [w.lower() for w in exclude]
-
-
-def _wanted(title, include, exclude):
-    if config_store.excluded(title, exclude):   # exclude wins (e.g. "Senior ...", PhD)
-        return False
-    # include matches at a word start so short tokens like "ai"/"ml" catch real
-    # roles ("AI Engineer", "AI/ML", "AIOps") without matching "retAIl"/"Mumbai",
-    # while "intern" still covers "internship".
-    t = title.lower()
-    return not include or any(re.search(rf"\b{re.escape(i)}", t) for i in include)
 
 
 def _role_type(title):
@@ -99,7 +88,7 @@ def _scrape(target, include, exclude):
     # Title filter, then drop non-US locations (lenient: ambiguous/blank/remote
     # and US-paired multi-location strings are kept -- see us_location.py).
     return [_to_listing(j) for j in jobs
-            if _wanted(j.title, include, exclude) and us_location.is_us_location(j.location)]
+            if config_store.wanted(j.title, include, exclude) and us_location.is_us_location(j.location)]
 
 
 @register("jobhive")

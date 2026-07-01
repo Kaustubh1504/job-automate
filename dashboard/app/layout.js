@@ -1,5 +1,6 @@
 import './globals.css';
 import Link from 'next/link';
+import TabNav from './TabNav';
 
 export const metadata = { title: 'Job Tracker' };
 
@@ -10,11 +11,14 @@ export default function RootLayout({ children }) {
         <nav className="border-b bg-white">
           <div className="mx-auto flex max-w-7xl gap-6 px-4 py-3 text-sm font-medium">
             <span className="font-semibold">Job Tracker</span>
-            <Link href="/" className="text-blue-600 hover:underline">Jobs</Link>
+            <Link href="/interns" className="text-blue-600 hover:underline">Jobs</Link>
             <Link href="/config" className="text-blue-600 hover:underline">Config</Link>
           </div>
         </nav>
-        <main className="mx-auto max-w-7xl px-4 py-6">{children}</main>
+        <main className="mx-auto max-w-7xl px-4 py-6">
+          <TabNav />
+          {children}
+        </main>
       </body>
     </html>
   );

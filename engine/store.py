@@ -33,8 +33,8 @@ class SupabaseStore:
             "Prefer": "resolution=merge-duplicates,return=minimal",
         }
 
-    def _row(self, l):
-        return {
+    def _row(self, l, batch_id):
+        row = {
             "global_id": canonicalize(l.url) or l.key,
             "company": l.company,
             "title": l.title,
@@ -43,14 +43,20 @@ class SupabaseStore:
             "source": l.source,
             "priority": l.priority,
         }
+        if batch_id:
+            row["batch_id"] = batch_id
+        return row
 
-    def save(self, listings):
+    def save(self, listings, batch_id=None):
+        # batch_id stamps every row from one run so the dashboard can highlight
+        # that scrape's roles (see run.py / notifiers.discord). Omitted -> the
+        # column is left untouched, so this stays safe before the migration.
         if not listings:
             return
         resp = requests.post(
             self.endpoint,
             params={"on_conflict": "global_id"},
-            json=[self._row(l) for l in listings],
+            json=[self._row(l, batch_id) for l in listings],
             headers=self.headers,
             timeout=30,
         )

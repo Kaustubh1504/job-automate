@@ -18,6 +18,7 @@ Env: GITHUB_TOKEN, loaded from a .env file via find_dotenv().
 import dataclasses
 import os
 import sys
+from datetime import datetime, timezone
 from pathlib import Path
 
 from dotenv import find_dotenv, load_dotenv
@@ -32,6 +33,7 @@ import collectors  # noqa: E402,F401  (importing registers every collector)
 from notifiers.base import get_notifier  # noqa: E402
 from poller import poll_all  # noqa: E402
 from classify import is_priority  # noqa: E402
+import config_store  # noqa: E402
 from store import SupabaseStore  # noqa: E402
 from collectors.jobhive import LAST_RUN_STATS as jobhive_stats  # noqa: E402
 
@@ -90,6 +92,13 @@ YCSTARTUP_SOURCES = [
     {"name": "ycstartup", "collector": "ycstartup"},
 ]
 
+# Built In's engineering/AI boards and Simplify's general new-grad list aren't
+# software-scoped -- they return every entry-level/new-grad role (sales, nursing,
+# mechanical/electrical eng, analysts). Gate them on the shared software-domain
+# title filter (config_store.wanted) so only software roles pass. The SWE-specific
+# repos (simplify-intern, vansh, speedyapply) are already scoped and pass untouched.
+FILTERED_SOURCES = {"builtin-engineering", "builtin-aiml", "simplify-newgrad"}
+
 STATE_FILE = Path(__file__).with_name("state.json")
 JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
 NUWORKS_STATE_FILE = Path(__file__).with_name("state-nuworks.json")
@@ -102,8 +111,19 @@ def main(sources, state_file, with_stats=False, header=None, color=None):
         sys.exit("GITHUB_TOKEN not set")
 
     new = list(poll_all(sources, state_file, token))
+    # Drop non-software roles from the un-scoped board feeds (Built In / general
+    # new-grad list) before storing/notifying; the SWE-curated sources pass through.
+    if any(l.source in FILTERED_SOURCES for l in new):
+        inc, exc = config_store.keywords()
+        new = [l for l in new if l.source not in FILTERED_SOURCES
+               or config_store.wanted(l.title, inc, exc)]
     # Tag the priority flag once so the store and the Discord summary share it.
     new = [dataclasses.replace(l, priority=is_priority(l)) for l in new]
+
+    # One id for this run: every row saved below is stamped with it, and the
+    # Discord link carries it, so clicking the digest highlights exactly this
+    # scrape's roles on the dashboard. Compact UTC timestamp -> unique per run.
+    batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
     # Always log to stdout (the cron log keeps the history); also push to Discord
     # if a webhook is configured. A notify failure must not lose the run.
@@ -115,7 +135,7 @@ def main(sources, state_file, with_stats=False, header=None, color=None):
     sb_url, sb_key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if sb_url and sb_key:
         try:
-            SupabaseStore(sb_url, sb_key).save(new)
+            SupabaseStore(sb_url, sb_key).save(new, batch_id=batch_id)
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
@@ -129,7 +149,7 @@ def main(sources, state_file, with_stats=False, header=None, color=None):
             # The jobhive scrape-health line only makes sense on the jobhive run.
             get_notifier("discord")(webhook).send(
                 interns, stats=jobhive_stats if with_stats else None,
-                header=header, color=color)
+                header=header, color=color, batch_id=batch_id)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 

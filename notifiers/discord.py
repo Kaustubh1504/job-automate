@@ -14,7 +14,14 @@ import requests
 from notifiers.base import register
 
 MAX_CHARS = 2000
-DASHBOARD_URL = "https://job-automate.vercel.app/"
+DASHBOARD_URL = "https://job-automate.vercel.app"
+
+
+def _dashboard_link(batch_id=None):
+    """Link to the interns view (the digest is interns-only); with a batch_id it
+    deep-links to that scrape so the dashboard highlights the roles it found."""
+    url = f"{DASHBOARD_URL}/interns"
+    return f"{url}?batch={batch_id}" if batch_id else url
 
 
 def _batch(lines, limit):
@@ -33,10 +40,11 @@ def _batch(lines, limit):
         yield "\n".join(buf)
 
 
-def _summary(listings, header=None, stats=None):
+def _summary(listings, header=None, stats=None, batch_id=None):
     """Lines for a per-company digest: priority companies first, then by count.
     An optional `header` line labels the section (e.g. for a jobright digest).
-    An optional `stats` dict ({failed, total}) appends a scrape-health line."""
+    An optional `stats` dict ({failed, total}) appends a scrape-health line.
+    `batch_id` deep-links the dashboard to this run's roles."""
     counts = Counter(l.company for l in listings)
     priority = {l.company for l in listings if getattr(l, "priority", False)}
     total = len(listings)
@@ -52,7 +60,7 @@ def _summary(listings, header=None, stats=None):
             lines.append(f"⭐ **{c}** — {counts[c]} (priority)")
         else:
             lines.append(f"**{c}** — {counts[c]}")
-    lines += ["", f"🔗 View & apply: {DASHBOARD_URL}"]
+    lines += ["", f"🔗 View & apply: {_dashboard_link(batch_id)}"]
     if stats and stats.get("total"):
         lines.append(f"📡 Scrape: {stats['failed']}/{stats['total']} targets failed")
     return lines
@@ -63,20 +71,20 @@ class DiscordNotifier:
     def __init__(self, webhook_url):
         self.webhook_url = webhook_url
 
-    def send(self, listings, header=None, stats=None, color=None):
+    def send(self, listings, header=None, stats=None, color=None, batch_id=None):
         if not listings:
             return
         # A `color` turns the digest into a colored embed (a card with a side-bar
         # + title) so a high-priority source stands out from the plain-text ones.
         # The digest is small enough to fit one embed (4096-char description cap).
         if color is not None:
-            body = "\n".join(_summary(listings, None, stats))[:4096]
+            body = "\n".join(_summary(listings, None, stats, batch_id))[:4096]
             embed = {"description": body, "color": color}
             if header:
                 embed["title"] = header          # title is inherently bold; pass plain text
             resp = requests.post(self.webhook_url, json={"embeds": [embed]}, timeout=30)
             resp.raise_for_status()
             return
-        for content in _batch(_summary(listings, header, stats), MAX_CHARS):
+        for content in _batch(_summary(listings, header, stats, batch_id), MAX_CHARS):
             resp = requests.post(self.webhook_url, json={"content": content}, timeout=30)
             resp.raise_for_status()
