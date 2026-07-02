@@ -132,7 +132,6 @@ export default function InternView({ titleIncludes } = {}) {
   }
 
   async function remove(row) {
-    if (!window.confirm(`Remove "${row.title}" at ${row.company}? It won't come back.`)) return;
     setRows((rs) => rs.filter((r) => r.key !== row.key));
     const { error } = await supabase.from(row.table).update({ dismissed: true }).eq('id', row.id);
     if (error) {

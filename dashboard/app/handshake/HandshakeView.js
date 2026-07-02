@@ -69,7 +69,6 @@ export default function HandshakeView() {
   }
 
   async function remove(job) {
-    if (!window.confirm(`Remove "${job.title}" at ${job.company}? It won't come back.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
     const { error } = await supabase.from('handshake_jobs').update({ dismissed: true }).eq('id', job.id);
     if (error) {

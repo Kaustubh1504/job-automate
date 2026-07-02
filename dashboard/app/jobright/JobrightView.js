@@ -73,7 +73,6 @@ export default function JobrightView() {
   // Soft-delete: mark dismissed so the next jobright scrape (which re-upserts
   // everything) can't resurrect it. Upserts leave `dismissed` untouched.
   async function remove(job) {
-    if (!window.confirm(`Remove "${job.title}" at ${job.company}? It won't come back.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
     const { error } = await supabase.from('jobright_jobs').update({ dismissed: true }).eq('id', job.id);
     if (error) {

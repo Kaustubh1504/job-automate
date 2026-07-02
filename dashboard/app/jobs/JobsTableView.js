@@ -100,7 +100,6 @@ export default function JobsTableView({ role }) {
   // (jobright re-upserts everything; the poller relies on state.json) can't
   // resurrect it. Upserts don't touch `dismissed`, so it stays hidden for good.
   async function remove(job) {
-    if (!window.confirm(`Remove "${job.title}" at ${job.company}? It won't come back.`)) return;
     setJobs((js) => js.filter((j) => j.id !== job.id));
     const { error } = await supabase.from('jobs').update({ dismissed: true }).eq('id', job.id);
     if (error) {
