@@ -95,6 +95,7 @@ def _row(type_, category, j):
         "location": j.get("location"),
         "salary": j.get("salary"),
         "apply_url": j.get("applyUrl"),
+        "apply_url_direct": None,   # filled by jobright_resolve (authed ATS lookup)
         "work_model": j.get("workModel"),
         "h1b_sponsored": j.get("h1bSponsored"),
         "is_new_grad": j.get("isNewGrad"),
@@ -124,6 +125,27 @@ def _existing_ids():
     except Exception as e:
         print(f"[jobright] couldn't read existing ids: {e}", file=sys.stderr)
         return None
+
+
+def _existing_direct():
+    """{id: apply_url_direct} for every jobright row (value None if unresolved), so
+    we resolve only unresolved ids and carry forward already-resolved URLs on
+    re-upsert. {} if we can't read (no creds / error)."""
+    url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
+    if not (url and key):
+        return {}
+    try:
+        r = requests.get(
+            f"{url.rstrip('/')}/rest/v1/jobright_jobs",
+            params={"select": "id,apply_url_direct"},
+            headers={"apikey": key, "Authorization": f"Bearer {key}"},
+            timeout=30,
+        )
+        r.raise_for_status()
+        return {row["id"]: row.get("apply_url_direct") for row in r.json()}
+    except Exception as e:
+        print(f"[jobright] couldn't read existing direct urls: {e}", file=sys.stderr)
+        return {}
 
 
 def save(rows):
@@ -160,6 +182,23 @@ def main():
     if existing is not None:
         for r in rows:
             r["batch_id"] = existing.get(r["id"], batch_id)
+
+    # Resolve the underlying ATS/original-posting URL for jobright rows not yet
+    # resolved (authed browser lookup; capped per run, self-healing). Carry forward
+    # already-resolved URLs so re-upsert never nulls them. Isolated: a resolver
+    # failure must not lose the scrape.
+    existing_direct = _existing_direct()
+    todo = [r["id"] for r in rows if not existing_direct.get(r["id"])]
+    resolved = {}
+    if todo:
+        try:
+            import jobright_resolve
+            resolved = jobright_resolve.resolve(todo)
+        except Exception as e:
+            print(f"[jobright] ATS resolution skipped: {type(e).__name__}: {e}", file=sys.stderr)
+    for r in rows:
+        r["apply_url_direct"] = resolved.get(r["id"]) or existing_direct.get(r["id"])
+
     try:
         save(rows)
     except Exception as e:
