@@ -35,6 +35,7 @@ from poller import poll_all  # noqa: E402
 from canonical import canonicalize  # noqa: E402
 from classify import is_priority  # noqa: E402
 import config_store  # noqa: E402
+import title_classifier  # noqa: E402
 from store import SupabaseStore  # noqa: E402
 from collectors.jobhive import LAST_RUN_STATS as jobhive_stats  # noqa: E402
 
@@ -117,10 +118,17 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
     new, live = poll_all(sources, state_file, token)
     # Drop non-software roles from the un-scoped board/listings feeds (Built In,
     # Simplify/vansh) before storing/notifying; SWE-curated sources pass through.
-    # Applied to `live` too (a superset of `new`) so the stored set is filtered.
+    # Keyword gate first (exclude drops, a domain term keeps); the ambiguous rest
+    # go to the LLM classifier -- pre-classified here in one batch (cached), then
+    # applied synchronously. Degrades to a domain-keyword filter with no model
+    # available, so it never blocks the run. Applied to `live` (superset of `new`).
     if any(l.source in FILTERED_SOURCES for l in live):
         inc, exc = config_store.keywords()
-        keep = lambda l: l.source not in FILTERED_SOURCES or config_store.wanted(l.title, inc, exc)
+        pending = [l.title for l in live if l.source in FILTERED_SOURCES
+                   and title_classifier.ambiguous(l.title, inc, exc)]
+        labels = title_classifier.classify(pending)
+        keep = lambda l: (l.source not in FILTERED_SOURCES
+                          or title_classifier.keep(l.title, inc, exc, labels))
         new = [l for l in new if keep(l)]
         live = [l for l in live if keep(l)]
     # Tag the priority flag once so the store and the Discord summary share it.
