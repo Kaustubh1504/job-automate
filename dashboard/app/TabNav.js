@@ -14,6 +14,7 @@ const TABS = [
   { href: '/handshake', label: 'Handshake' },
   { href: '/wellfound', label: 'Wellfound' },
   { href: '/newgrad', label: 'New Grad' },
+  { href: '/2027', label: '2027' },
 ];
 
 export default function TabNav() {

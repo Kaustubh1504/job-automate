@@ -40,7 +40,9 @@ const tsNum = (r) => {
   return t ? Date.parse(t) : 0;
 };
 
-export default function InternView() {
+// `titleIncludes` (optional) further narrows to intern titles containing that
+// substring -- used by the /2027 route to show only 2027 internships.
+export default function InternView({ titleIncludes } = {}) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -97,9 +99,11 @@ export default function InternView() {
 
     // newest first, then dedupe the same role across boards (company + title).
     // JobSpy rows must also pass the config title filter (its search is loose).
+    const needle = (titleIncludes || '').toLowerCase();
     const merged = results
       .flatMap((r) => r.rows || [])
       .filter((r) => r.table !== 'jobspy_jobs' || titleOk(r.title))
+      .filter((r) => !needle || (r.title || '').toLowerCase().includes(needle))
       .sort((a, b) => tsNum(b) - tsNum(a));
     const seen = new Set();
     const deduped = [];
@@ -111,7 +115,7 @@ export default function InternView() {
     }
     setRows(deduped);
     setLoading(false);
-  }, [sinceHours]);
+  }, [sinceHours, titleIncludes]);
 
   useEffect(() => {
     load();
