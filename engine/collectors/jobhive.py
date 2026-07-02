@@ -3,9 +3,11 @@
 Unlike the GitHub-repo sources (one URL + ETag + parser), this hits each tracked
 company's ATS directly through jobhive's per-ATS scrapers, so a posting shows up
 as soon as the company publishes it -- no maintainer/PR lag. A company's ATS
-returns *every* open role, so results are trimmed by a title keyword filter
-(config/keywords.json). Companies are scraped concurrently; one that fails is
-logged and skipped so the rest still report.
+returns *every* open role; this collector applies only the exclude rule + a
+US-location filter, and defers the software-domain decision (keyword include +
+the LLM classifier for ambiguous titles) to run.py's FILTERED_SOURCES gate.
+Companies are scraped concurrently; one that fails is logged and skipped so the
+rest still report.
 
 Company list and filter live at the project root:
     config/targets.json   -- {ats, slug} per company (see that file's comment)
@@ -37,9 +39,8 @@ def _load_targets():
     return config_store.targets()
 
 
-def _load_filter():
-    include, exclude = config_store.keywords()
-    return [w.lower() for w in include], [w.lower() for w in exclude]
+def _load_exclude():
+    return [w.lower() for w in config_store.keywords()[1]]
 
 
 def _role_type(title):
@@ -77,7 +78,7 @@ def _to_listing(job):
     )
 
 
-def _scrape(target, include, exclude):
+def _scrape(target, exclude):
     # Randomized jitter so we don't hit every ATS in lockstep (politeness +
     # lighter bot-detection footprint). jobhive's scrapers already back off on
     # 429/Retry-After per request, so we only add the inter-company jitter.
@@ -85,20 +86,24 @@ def _scrape(target, include, exclude):
     print(f"[jobhive] sleeping {delay:.1f}s before {target['ats']}:{target['slug']}", file=sys.stderr)
     time.sleep(delay)
     jobs = get_scraper(target["ats"], target["slug"], timeout=REQUEST_TIMEOUT).fetch()
-    # Title filter, then drop non-US locations (lenient: ambiguous/blank/remote
-    # and US-paired multi-location strings are kept -- see us_location.py).
+    # Apply only the exclude rule + US-location filter here; the software-domain
+    # decision (keyword include, then the LLM classifier for ambiguous titles) is
+    # made centrally in run.py, since jobhive is in FILTERED_SOURCES. Deferring
+    # lets ambiguous-but-software titles reach the classifier instead of being
+    # dropped by the include keyword filter. Location filter stays lenient
+    # (ambiguous/blank/remote and US-paired multi-location strings are kept).
     return [_to_listing(j) for j in jobs
-            if config_store.wanted(j.title, include, exclude) and us_location.is_us_location(j.location)]
+            if not config_store.excluded(j.title, exclude) and us_location.is_us_location(j.location)]
 
 
 @register("jobhive")
 def collect(src):
-    include, exclude = _load_filter()
+    exclude = _load_exclude()
     targets = _load_targets()
     out = []
     failed = 0
     with ThreadPoolExecutor(max_workers=MAX_WORKERS) as pool:
-        futures = {pool.submit(_scrape, t, include, exclude): t for t in targets}
+        futures = {pool.submit(_scrape, t, exclude): t for t in targets}
         for fut in as_completed(futures):
             t = futures[fut]
             try:

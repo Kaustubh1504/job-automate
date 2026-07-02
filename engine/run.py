@@ -102,7 +102,7 @@ YCSTARTUP_SOURCES = [
 # roles pass. speedyapply-intern is a SWE-only repo and passes untouched.
 FILTERED_SOURCES = {"builtin-engineering", "builtin-aiml", "simplify-newgrad",
                     "simplify-intern", "vansh-intern", "vansh-2027-intern",
-                    "vansh-newgrad"}
+                    "vansh-newgrad", "jobhive"}
 
 STATE_FILE = Path(__file__).with_name("state.json")
 JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
