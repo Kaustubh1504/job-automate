@@ -37,6 +37,15 @@ function roleOf(job) {
   return 'other';
 }
 
+// Sub-tabs on the jobs-table page, bucketed by roleOf. The `role` prop sets the
+// initial tab (/all opens on All, /newgrad on New Grad).
+const TABS = [
+  { key: 'all', label: 'All' },
+  { key: 'intern', label: 'Intern' },
+  { key: 'newgrad', label: 'New Grad' },
+  { key: 'other', label: 'Other' },
+];
+
 export default function JobsTableView({ role }) {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -44,6 +53,7 @@ export default function JobsTableView({ role }) {
   const [sinceHours, setSinceHours] = useState(24);
   const [hideApplied, setHideApplied] = useState(true);
   const [priorityOnly, setPriorityOnly] = useState(false);
+  const [tab, setTab] = useState(role); // role prop is the initial sub-tab
   // Discord deep-link: /all?batch=<run id>. Every `jobs` row carries batch_id, so
   // we highlight the ones this scrape found. Named batchId to avoid shadowing the
   // day-group `batch` in the render below.
@@ -100,7 +110,16 @@ export default function JobsTableView({ role }) {
   }
 
   const available = hideApplied ? jobs.filter((j) => !j.applied) : jobs;
-  const visible = role === 'all' ? available : available.filter((j) => roleOf(j) === role);
+  // Tab counts over the shown set (post hide-applied), so a count matches its tab.
+  const counts = available.reduce(
+    (acc, j) => {
+      acc.all += 1;
+      acc[roleOf(j)] += 1;
+      return acc;
+    },
+    { all: 0, intern: 0, newgrad: 0, other: 0 }
+  );
+  const visible = tab === 'all' ? available : available.filter((j) => roleOf(j) === tab);
   const hotCount = batchId ? visible.filter((j) => j.batch_id === batchId).length : 0;
 
   return (
@@ -114,6 +133,23 @@ export default function JobsTableView({ role }) {
           <Link href={pathname} className="ml-auto text-blue-600 hover:underline">Clear</Link>
         </div>
       )}
+      <div className="mb-4 flex gap-1 border-b">
+        {TABS.map((t) => (
+          <button
+            key={t.key}
+            onClick={() => setTab(t.key)}
+            className={`-mb-px border-b-2 px-4 py-2 text-sm ${
+              tab === t.key
+                ? 'border-blue-600 font-medium text-blue-600'
+                : 'border-transparent text-gray-500 hover:text-gray-800'
+            }`}
+          >
+            {t.label}
+            <span className="text-gray-400"> ({counts[t.key]})</span>
+          </button>
+        ))}
+      </div>
+
       <div className="mb-4 flex flex-wrap items-center gap-4">
         <label className="text-sm">
           Posted within{' '}
