@@ -16,9 +16,12 @@ import re
 
 from listing import Listing
 from registry import register
+from us_location import is_us_location
 
 _HREF = re.compile(r'href="([^"]+)"')
 _TAGS = re.compile(r"<[^>]+>")
+# PhD-specific roles are out of scope. Matches "PhD", "Ph.D", "Ph. D", "PHD".
+_PHD = re.compile(r"\bph\.?\s?d\b", re.I)
 
 
 def _text(cell):
@@ -54,6 +57,9 @@ def parse(resp):
         m = _HREF.search(row.get("posting", ""))
         url = m.group(1) if m else ""
         if not (company and title):
+            continue
+        # Same repo-feed gate as the JSON sources: US-only, no PhD roles.
+        if not is_us_location(location) or _PHD.search(title):
             continue
         listings.append(Listing(
             key=url or f"{company}|{title}|{location}",
