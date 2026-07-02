@@ -164,23 +164,48 @@ def scrape():
     return by_id
 
 
+def _dedup_key(row):
+    """Stable identity for a role, for deduping announcements. LinkedIn reposts a
+    role under a fresh job id every few days, so keying the announce on the id
+    re-pings the same role each run; collapse on company+title (normalized)."""
+    company = re.sub(r"\s+", " ", (row.get("company") or "").strip().lower())
+    title = re.sub(r"\s+", " ", (row.get("title") or "").strip().lower())
+    return company, title
+
+
 def _existing_ids():
-    """{id: batch_id} already in jobspy_jobs (the seen-set + each row's run stamp),
-    or None if we can't tell (no creds / read failed) -- in which case we don't
-    announce, to avoid blasting the whole backlog. The batch_id lets us preserve a
-    re-seen row's original run stamp on re-upsert."""
+    """({id: batch_id}, {dedup_key}) for the rows already in jobspy_jobs, or None
+    if we can't tell (no creds / read failed) -- in which case we don't announce,
+    to avoid blasting the whole backlog. The id->batch map preserves a re-seen
+    row's original run stamp on re-upsert; the dedup-key set makes the announce
+    skip roles already seen under any (possibly reposted) id. Paged past
+    PostgREST's 1000-row default so the seen-set stays complete as the table grows."""
     url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if not (url and key):
         return None
+    h = {"apikey": key, "Authorization": f"Bearer {key}"}
+    id_to_batch, seen, start, step = {}, set(), 0, 1000
     try:
-        r = requests.get(
-            f"{url.rstrip('/')}/rest/v1/jobspy_jobs",
-            params={"select": "id,batch_id"},
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            timeout=30,
-        )
-        r.raise_for_status()
-        return {row["id"]: row.get("batch_id") for row in r.json()}
+        while True:
+            r = requests.get(
+                f"{url.rstrip('/')}/rest/v1/jobspy_jobs",
+                params={"select": "id,batch_id,company,title"},
+                headers={**h, "Range-Unit": "items", "Range": f"{start}-{start + step - 1}"},
+                timeout=30,
+            )
+            if r.status_code == 416:            # asked past the last row -- done
+                break
+            r.raise_for_status()
+            page = r.json()
+            if not page:
+                break
+            for row in page:
+                id_to_batch[row["id"]] = row.get("batch_id")
+                seen.add(_dedup_key(row))
+            if len(page) < step:
+                break
+            start += step
+        return id_to_batch, seen
     except Exception as e:
         print(f"[jobspy] couldn't read existing ids: {e}", file=sys.stderr)
         return None
@@ -208,7 +233,7 @@ def save(rows):
 
 def main():
     found = scrape()
-    existing = _existing_ids()           # snapshot the seen-set before upserting
+    existing = _existing_ids()           # (id->batch, seen dedup keys) or None
     rows = list(found.values())
     print(f"[jobspy] {len(rows)} jobs scraped across {sum(len(g['sites']) for g in GROUPS)} boards")
     # Stamp this run's NEW rows with a shared batch_id so /jobspy?batch=<id> can
@@ -216,24 +241,31 @@ def main():
     # seen-set is unknown (existing is None) so we don't clobber stamps blindly.
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     if existing is not None:
+        id_to_batch = existing[0]
         for r in rows:
-            r["batch_id"] = existing.get(r["id"], batch_id)
+            r["batch_id"] = id_to_batch.get(r["id"], batch_id)
     try:
         save(rows)
     except Exception as e:
         print(f"[jobspy] store failed (does table 'jobspy_jobs' exist?): {e}", file=sys.stderr)
 
     # Discord: announce only newly-seen INTERN roles (new-grad is stored but not
-    # pinged). `existing` is empty/None on the first populated run, so the backlog
-    # isn't blasted -- only new postings after. Match by title (same as the
-    # dashboard) since the search bucket is noisy.
+    # pinged). Dedup on company+title, NOT the job id: LinkedIn reposts a role
+    # under a new id every few days, so id-keying re-pings the same role every run.
+    # The seen-set is empty/None on the first populated run, so the backlog isn't
+    # blasted -- only new postings after.
     webhook = os.environ.get("DISCORD_WEBHOOK_URL")
-    if webhook and existing:
-        fresh = [
-            SimpleNamespace(company=r["company"])
-            for r in rows
-            if r["id"] not in existing and r.get("title") and INTERN_RE.search(r["title"])
-        ]
+    if webhook and existing is not None and existing[1]:
+        seen = existing[1]
+        fresh, announced = [], set()
+        for r in rows:
+            if not (r.get("title") and INTERN_RE.search(r["title"])):
+                continue
+            k = _dedup_key(r)
+            if k in seen or k in announced:  # seen in a prior run, or a repost within this run
+                continue
+            announced.add(k)
+            fresh.append(SimpleNamespace(company=r["company"]))
         print(f"[jobspy] {len(fresh)} new intern roles since last run", file=sys.stderr)
         try:
             get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** new interns (LinkedIn/Indeed)", path="/jobspy", batch_id=batch_id)
