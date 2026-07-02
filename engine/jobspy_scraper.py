@@ -105,6 +105,11 @@ def _row(role_type, r):
         "location": _clean(r.get("location")),
         "salary": _salary(r),
         "apply_url": _clean(r.get("job_url")),
+        # The resolved employer/ATS link (e.g. *.myworkdayjobs.com, *.icims.com).
+        # jobspy populates this for Indeed (~100%); empty for LinkedIn. Enables
+        # dedup against ATS-native boards (Simplify/jobhive/speedyapply) by URL.
+        "apply_url_direct": _clean(r.get("job_url_direct")),
+        "company_url_direct": _clean(r.get("company_url_direct")),
         "site": _clean(r.get("site")),
         "job_type": _clean(r.get("job_type")),
         "is_remote": bool(_clean(r.get("is_remote"))),
