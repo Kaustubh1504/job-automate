@@ -92,12 +92,15 @@ YCSTARTUP_SOURCES = [
     {"name": "ycstartup", "collector": "ycstartup"},
 ]
 
-# Built In's engineering/AI boards and Simplify's general new-grad list aren't
+# Built In's boards and the Simplify/vansh listings.json lists aren't
 # software-scoped -- they return every entry-level/new-grad role (sales, nursing,
-# mechanical/electrical eng, analysts). Gate them on the shared software-domain
-# title filter (config_store.wanted) so only software roles pass. The SWE-specific
-# repos (simplify-intern, vansh, speedyapply) are already scoped and pass untouched.
-FILTERED_SOURCES = {"builtin-engineering", "builtin-aiml", "simplify-newgrad"}
+# mechanical eng, analysts), and Simplify's own `category` field is unreliable
+# (e.g. a hospital "Innovation District Intern" tagged AI/ML/Data). Gate them on
+# the shared software-domain title filter (config_store.wanted) so only software
+# roles pass. speedyapply-intern is a SWE-only repo and passes untouched.
+FILTERED_SOURCES = {"builtin-engineering", "builtin-aiml", "simplify-newgrad",
+                    "simplify-intern", "vansh-intern", "vansh-2027-intern",
+                    "vansh-newgrad"}
 
 STATE_FILE = Path(__file__).with_name("state.json")
 JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
