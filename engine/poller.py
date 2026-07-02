@@ -41,7 +41,10 @@ def _save(path, state):
 
 
 def _poll_one(src, token, src_state):
-    """Poll one source; return (new_live_listings, updated_src_state).
+    """Poll one source; return (new_live_listings, all_live_listings, updated_src_state).
+
+    `new` is what to announce (unseen since last poll); `live` is every currently
+    open role, so a caller can persist the full active set (not just transitions).
 
     Two source kinds: a "collector" acquires its own list[Listing] (no URL/ETag);
     otherwise it's a URL source -- conditional GET + parser on the response.
@@ -57,7 +60,7 @@ def _poll_one(src, token, src_state):
         fetch = get_fetcher(src.get("fetcher", "requests"))
         resp = fetch.get(src["url"], headers=headers)
         if resp.status_code == 304:      # unchanged since last poll
-            return [], src_state
+            return [], [], src_state
 
         listings = get_parser(src["parser"])(resp)
         etag = resp.headers.get("ETag")
@@ -78,11 +81,14 @@ def _poll_one(src, token, src_state):
     new = [] if first_run else [l for l in live if l.key not in announced]
 
     announced.update(l.key for l in live)
-    return new, {"etag": etag, "announced_ids": sorted(announced)}
+    return new, live, {"etag": etag, "announced_ids": sorted(announced)}
 
 
 def poll_all(sources, state_file, token):
-    """Poll every source once. Returns a flat aggregated list of new Listings.
+    """Poll every source once. Returns (new, live):
+      new  -- flat aggregated list of newly-live Listings (for announcing)
+      live -- flat aggregated list of every currently-live Listing (for persisting
+              the full active set), deduped within this run.
 
     sources:    list of {"name", "url", "parser", "role_type"(optional)}
     state_file: pathlib.Path to the shared per-source JSON state store
@@ -95,10 +101,11 @@ def poll_all(sources, state_file, token):
     # duplicates from the output, never re-fires, so no re-baseline needed.
     seen = set(state.get("_seen", []))
     aggregated = []
+    live_all, live_seen = [], set()   # full active set, deduped within this run only
     for src in sources:
         name = src["name"]
         try:
-            new, state[name] = _poll_one(src, token, state.get(name, {}))
+            new, live, state[name] = _poll_one(src, token, state.get(name, {}))
         except Exception as e:
             print(f"[{name}] poll failed: {e}", file=sys.stderr)
             continue
@@ -108,6 +115,12 @@ def poll_all(sources, state_file, token):
                 continue
             seen.add(key)
             aggregated.append(l)
+        for l in live:
+            key = canonicalize(l.url) or l.key
+            if key in live_seen:
+                continue
+            live_seen.add(key)
+            live_all.append(l)
     state["_seen"] = sorted(seen)
     _save(state_file, state)
-    return aggregated
+    return aggregated, live_all

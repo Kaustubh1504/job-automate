@@ -32,6 +32,7 @@ import parsers  # noqa: E402,F401  (importing registers every parser)
 import collectors  # noqa: E402,F401  (importing registers every collector)
 from notifiers.base import get_notifier  # noqa: E402
 from poller import poll_all  # noqa: E402
+from canonical import canonicalize  # noqa: E402
 from classify import is_priority  # noqa: E402
 import config_store  # noqa: E402
 from store import SupabaseStore  # noqa: E402
@@ -108,24 +109,26 @@ NUWORKS_STATE_FILE = Path(__file__).with_name("state-nuworks.json")
 YCSTARTUP_STATE_FILE = Path(__file__).with_name("state-ycstartup.json")
 
 
-def main(sources, state_file, with_stats=False, header=None, color=None):
+def main(sources, state_file, with_stats=False, header=None, color=None, store_all=False):
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
         sys.exit("GITHUB_TOKEN not set")
 
-    new = list(poll_all(sources, state_file, token))
-    # Drop non-software roles from the un-scoped board feeds (Built In / general
-    # new-grad list) before storing/notifying; the SWE-curated sources pass through.
-    if any(l.source in FILTERED_SOURCES for l in new):
+    new, live = poll_all(sources, state_file, token)
+    # Drop non-software roles from the un-scoped board/listings feeds (Built In,
+    # Simplify/vansh) before storing/notifying; SWE-curated sources pass through.
+    # Applied to `live` too (a superset of `new`) so the stored set is filtered.
+    if any(l.source in FILTERED_SOURCES for l in live):
         inc, exc = config_store.keywords()
-        new = [l for l in new if l.source not in FILTERED_SOURCES
-               or config_store.wanted(l.title, inc, exc)]
+        keep = lambda l: l.source not in FILTERED_SOURCES or config_store.wanted(l.title, inc, exc)
+        new = [l for l in new if keep(l)]
+        live = [l for l in live if keep(l)]
     # Tag the priority flag once so the store and the Discord summary share it.
     new = [dataclasses.replace(l, priority=is_priority(l)) for l in new]
 
-    # One id for this run: every row saved below is stamped with it, and the
-    # Discord link carries it, so clicking the digest highlights exactly this
-    # scrape's roles on the dashboard. Compact UTC timestamp -> unique per run.
+    # One id for this run: the NEW rows are stamped with it and the Discord link
+    # carries it, so clicking the digest highlights exactly this scrape's roles.
+    # Compact UTC timestamp -> unique per run.
     batch_id = datetime.now(timezone.utc).strftime("%Y%m%dT%H%M%SZ")
 
     # Always log to stdout (the cron log keeps the history); also push to Discord
@@ -138,7 +141,18 @@ def main(sources, state_file, with_stats=False, header=None, color=None):
     sb_url, sb_key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if sb_url and sb_key:
         try:
-            SupabaseStore(sb_url, sb_key).save(new, batch_id=batch_id)
+            store = SupabaseStore(sb_url, sb_key)
+            if store_all:
+                # Persist the FULL current active set (idempotent upsert) so the
+                # dashboard reflects every open role -- not just post-baseline
+                # transitions -- fixing the missing backlog. Only the new rows carry
+                # this run's batch_id (for the /all highlight); the rest are saved
+                # without it so any prior batch stamp is preserved.
+                new_keys = {canonicalize(l.url) or l.key for l in new}
+                seen_live = [dataclasses.replace(l, priority=is_priority(l))
+                             for l in live if (canonicalize(l.url) or l.key) not in new_keys]
+                store.save(seen_live, batch_id=None)
+            store.save(new, batch_id=batch_id)
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
@@ -181,4 +195,8 @@ if __name__ == "__main__":
              header="🟧 YC STARTUPS — new intern roles 🟧",
              color=0xFB651E)
     else:
-        main(SOURCES, STATE_FILE)
+        # store_all: the fast poller's repo/board feeds expose their full active
+        # set each run, so persist all of it (not just new transitions) to keep the
+        # dashboard complete. jobhive/nuworks/ycstartup stay new-only (jobhive's
+        # live set is huge; the others are low-volume).
+        main(SOURCES, STATE_FILE, store_all=True)

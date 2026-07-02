@@ -4,8 +4,17 @@ Shared by Simplify and vansh; their internship and new-grad repos all use this
 identical schema, so each is just a source-config entry pointing here.
 """
 
+from datetime import datetime, timezone
+
 from listing import Listing
 from registry import register
+
+
+def _iso(ts):
+    """Unix seconds -> ISO 8601 UTC, or None. date_posted/date_updated are epochs."""
+    if not ts:
+        return None
+    return datetime.fromtimestamp(ts, timezone.utc).isoformat()
 
 
 @register("simplify_schema")
@@ -19,5 +28,6 @@ def parse(resp):
             locations=tuple(j.get("locations", [])),
             url=j["url"],
             live=bool(j.get("active") and j.get("is_visible")),
+            posted_at=_iso(j.get("date_posted")),
         ))
     return out

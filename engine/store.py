@@ -42,6 +42,9 @@ class SupabaseStore:
             "apply_url": l.url,
             "source": l.source,
             "priority": l.priority,
+            # Always present (null when a source has no post date) so a bulk upsert
+            # keeps uniform keys -- PostgREST rejects rows with differing key sets.
+            "posted_at": l.posted_at,
         }
         if batch_id:
             row["batch_id"] = batch_id

@@ -20,6 +20,7 @@ class Listing:
     role_type: str = ""         # "intern" | "newgrad"     (stamped by engine)
     annual_salary: float | None = None   # USD/yr when a source exposes pay (jobhive)
     priority: bool = False                # referral/priority tag (classify.is_priority)
+    posted_at: str | None = None          # ISO 8601 UTC when the source exposes a post date
 
     def display(self):
         loc = ", ".join(self.locations) or "\u2014"
