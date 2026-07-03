@@ -205,16 +205,32 @@ def scrape():
 
 
 def _existing_ids():
+    """{id: batch_id} for the rows already in handshake_jobs, or None if we can't
+    tell (no creds / read failed). Paged past PostgREST's 1000-row default so the
+    seen-set stays complete as the table grows -- a truncated read re-announces
+    old roles and clobbers their batch stamps."""
     url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
     if not (url and key):
         return None
+    h = {"apikey": key, "Authorization": f"Bearer {key}"}
+    out, start, step = {}, 0, 1000
     try:
-        r = requests.get(f"{url.rstrip('/')}/rest/v1/handshake_jobs",
-                         params={"select": "id,batch_id"},
-                         headers={"apikey": key, "Authorization": f"Bearer {key}"},
-                         timeout=30)
-        r.raise_for_status()
-        return {row["id"]: row.get("batch_id") for row in r.json()}
+        while True:
+            r = requests.get(f"{url.rstrip('/')}/rest/v1/handshake_jobs",
+                             params={"select": "id,batch_id"},
+                             headers={**h, "Range-Unit": "items",
+                                      "Range": f"{start}-{start + step - 1}"},
+                             timeout=30)
+            if r.status_code == 416:            # asked past the last row -- done
+                break
+            r.raise_for_status()
+            page = r.json()
+            for row in page:
+                out[row["id"]] = row.get("batch_id")
+            if len(page) < step:
+                break
+            start += step
+        return out
     except Exception as e:
         print(f"[handshake] couldn't read existing ids: {e}", file=sys.stderr)
         return None

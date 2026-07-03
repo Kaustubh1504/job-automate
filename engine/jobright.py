@@ -105,47 +105,60 @@ def _row(type_, category, j):
     }
 
 
+def _read_all(select, what):
+    """All jobright_jobs rows for a `select`, or None if we can't read (no creds /
+    error). Paged past PostgREST's 1000-row default so the read stays complete as
+    the table grows -- a truncated read re-announces old roles, clobbers their
+    batch stamps and nulls already-resolved direct URLs."""
+    url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
+    if not (url and key):
+        return None
+    h = {"apikey": key, "Authorization": f"Bearer {key}"}
+    out, start, step = [], 0, 1000
+    try:
+        while True:
+            r = requests.get(
+                f"{url.rstrip('/')}/rest/v1/jobright_jobs",
+                params={"select": select},
+                headers={**h, "Range-Unit": "items",
+                         "Range": f"{start}-{start + step - 1}"},
+                timeout=30,
+            )
+            if r.status_code == 416:            # asked past the last row -- done
+                break
+            r.raise_for_status()
+            page = r.json()
+            out.extend(page)
+            if len(page) < step:
+                break
+            start += step
+        return out
+    except Exception as e:
+        print(f"[jobright] couldn't read existing {what}: {e}", file=sys.stderr)
+        return None
+
+
 def _existing_ids():
     """{id: batch_id} already in jobright_jobs (the seen-set + each row's run stamp),
     or None if we can't tell (no creds / read failed) -- in which case we don't
     announce, to avoid blasting the whole backlog. The batch_id lets us preserve a
     re-seen row's original run stamp on re-upsert."""
-    url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
-    if not (url and key):
+    rows = _read_all("id,batch_id", "ids")
+    if rows is None:
         return None
-    try:
-        r = requests.get(
-            f"{url.rstrip('/')}/rest/v1/jobright_jobs",
-            params={"select": "id,batch_id"},
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            timeout=30,
-        )
-        r.raise_for_status()
-        return {row["id"]: row.get("batch_id") for row in r.json()}
-    except Exception as e:
-        print(f"[jobright] couldn't read existing ids: {e}", file=sys.stderr)
-        return None
+    return {row["id"]: row.get("batch_id") for row in rows}
 
 
 def _existing_direct():
     """{id: apply_url_direct} for every jobright row (value None if unresolved), so
     we resolve only unresolved ids and carry forward already-resolved URLs on
-    re-upsert. {} if we can't read (no creds / error)."""
-    url, key = os.environ.get("SUPABASE_URL"), os.environ.get("SUPABASE_KEY")
-    if not (url and key):
-        return {}
-    try:
-        r = requests.get(
-            f"{url.rstrip('/')}/rest/v1/jobright_jobs",
-            params={"select": "id,apply_url_direct"},
-            headers={"apikey": key, "Authorization": f"Bearer {key}"},
-            timeout=30,
-        )
-        r.raise_for_status()
-        return {row["id"]: row.get("apply_url_direct") for row in r.json()}
-    except Exception as e:
-        print(f"[jobright] couldn't read existing direct urls: {e}", file=sys.stderr)
-        return {}
+    re-upsert. None if we can't read (no creds / error) -- the caller must then
+    leave the column out of the upsert entirely, or it would null every
+    previously-resolved URL."""
+    rows = _read_all("id,apply_url_direct", "direct urls")
+    if rows is None:
+        return None
+    return {row["id"]: row.get("apply_url_direct") for row in rows}
 
 
 def save(rows):
@@ -186,18 +199,24 @@ def main():
     # Resolve the underlying ATS/original-posting URL for jobright rows not yet
     # resolved (authed browser lookup; capped per run, self-healing). Carry forward
     # already-resolved URLs so re-upsert never nulls them. Isolated: a resolver
-    # failure must not lose the scrape.
+    # failure must not lose the scrape. When we can't read what's already resolved
+    # (existing_direct is None), drop the column from every row (the bulk upsert
+    # needs uniform keys) so the merge leaves stored URLs untouched.
     existing_direct = _existing_direct()
-    todo = [r["id"] for r in rows if not existing_direct.get(r["id"])]
-    resolved = {}
-    if todo:
-        try:
-            import jobright_resolve
-            resolved = jobright_resolve.resolve(todo)
-        except Exception as e:
-            print(f"[jobright] ATS resolution skipped: {type(e).__name__}: {e}", file=sys.stderr)
-    for r in rows:
-        r["apply_url_direct"] = resolved.get(r["id"]) or existing_direct.get(r["id"])
+    if existing_direct is None:
+        for r in rows:
+            del r["apply_url_direct"]
+    else:
+        todo = [r["id"] for r in rows if not existing_direct.get(r["id"])]
+        resolved = {}
+        if todo:
+            try:
+                import jobright_resolve
+                resolved = jobright_resolve.resolve(todo)
+            except Exception as e:
+                print(f"[jobright] ATS resolution skipped: {type(e).__name__}: {e}", file=sys.stderr)
+        for r in rows:
+            r["apply_url_direct"] = resolved.get(r["id"]) or existing_direct.get(r["id"])
 
     try:
         save(rows)
