@@ -18,7 +18,7 @@ const PARAMS = `keywords=${encodeURIComponent(KEYWORDS)}&geoId=${GEO_ID}&distanc
 // names are obfuscated and rotate per deploy, so the scrape below anchors on the
 // stable /jobs/view/ link (gives both id + url) rather than CSS classes.
 const PAGE_SIZE = 25;        // results per page
-const MAX_PAGES = 5;         // gentle cap -> at most 125 listings per run
+const MAX_PAGES = 50;        // cap -> at most 1250 listings per run
 const PAGE_DELAY_MS = 2_000; // pause between page loads — account safety
 const pageUrl = (start: number) =>
   `https://www.linkedin.com/jobs/search-results/?${PARAMS}&start=${start}`;
