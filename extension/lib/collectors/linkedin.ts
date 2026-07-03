@@ -19,6 +19,13 @@ const PARAMS = `keywords=${encodeURIComponent(KEYWORDS)}&geoId=${GEO_ID}&distanc
 // stable /jobs/view/ link (gives both id + url) rather than CSS classes.
 const PAGE_SIZE = 25;        // results per page
 const MAX_PAGES = 50;        // cap -> at most 1250 listings per run
+
+// Keep only intern-style titles: the keyword search is fuzzy and leaks adjacent
+// roles (new grad, senior roles matching "software"). Covers the early-career
+// program variants (co-op, residency, apprenticeship, fellowship, trainee);
+// "residency"/"fellowship" over resident/fellow to avoid "Resident Engineer" /
+// "Senior Fellow".
+const INTERN_RE = /\b(intern(ship)?|co-?op|residency|apprentice(ship)?|fellowship|trainee)\b/i;
 const PAGE_DELAY_MS = 2_000; // pause between page loads — account safety
 const pageUrl = (start: number) =>
   `https://www.linkedin.com/jobs/search-results/?${PARAMS}&start=${start}`;
@@ -87,6 +94,7 @@ export const linkedin: Collector = {
       for (const r of raw) {
         const jobId = String(r.jobId);
         if (byId.has(jobId)) continue;
+        if (!INTERN_RE.test(r.title)) continue; // non-intern leak-in from the fuzzy search
         byId.set(jobId, {
           key: `${NAME}:${jobId}`,
           source: NAME,
