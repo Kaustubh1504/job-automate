@@ -51,11 +51,16 @@ import title_classifier  # noqa: E402  (engine/ -- software-domain title gate + 
 # re-fetched rows just upsert (dedup on id; Discord announces only new).
 # Indeed works on the host IP and stays lean/fresh.
 LINKEDIN = {"sites": ["linkedin"], "results_wanted": 500, "hours_old": 48, "proxied": True}
-INDEED = {"sites": ["indeed"], "results_wanted": 50, "hours_old": 24, "proxied": False}
+# Indeed's intern supply is a trickle (~1/day in the 24h window), so look back
+# 72h to accumulate some; re-fetched rows just upsert (dedup on id).
+INDEED = {"sites": ["indeed"], "results_wanted": 50, "hours_old": 72, "proxied": False}
 GROUPS = [LINKEDIN, INDEED]
 
-# Discord pings only for intern roles -- matched by title, like the dashboard.
-INTERN_RE = re.compile(r"\bintern(ship)?\b", re.I)
+# Intern-style titles (early-career program variants) -- gates which rows the
+# intern search keeps AND which roles get Discord pings. residency/fellowship
+# rather than resident/fellow so "Resident Engineer" / "Senior Fellow" stay out.
+INTERN_RE = re.compile(
+    r"\b(intern(ship)?|co-?op|residency|apprentice(ship)?|fellowship|trainee)\b", re.I)
 
 
 def _proxies():
@@ -157,6 +162,11 @@ def scrape():
                 if not d.get("id"):
                     continue
                 if config_store.excluded(d.get("title"), exclude):  # central title-exclude
+                    continue
+                # The intern search is fuzzy (generic "Software Engineer" rows,
+                # even nurses); keep only intern-style titles so role_type=intern
+                # rows really are internships. The newgrad search is untouched.
+                if role_type == "intern" and not INTERN_RE.search(d.get("title") or ""):
                     continue
                 by_id.setdefault(d["id"], _row(role_type, d))  # first role wins on overlap
                 n += 1
