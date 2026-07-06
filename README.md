@@ -13,7 +13,7 @@ Everything runs 24/7 on a **Raspberry Pi**: each source group has its own system
 | **vansh** | Summer 2026/2027 internships + New-Grad-2027 GitHub feeds |
 | **SpeedyApply** | 2026 SWE college-jobs tables (GitHub) |
 | **Built In** | national board, engineering + AI/ML categories |
-| **LinkedIn** | JobSpy guest-API search (proxied) + browser-extension search polling |
+| **LinkedIn** | JobSpy guest-API search (proxied) |
 | **Indeed** | JobSpy search, direct |
 | **Jobright.ai** | SWE + AI/ML intern minisites, with H1B-sponsorship tags and authed ATS-link resolution |
 | **Handshake** | university board, authed stealth-browser GraphQL |
@@ -35,7 +35,7 @@ Results are upserted to **Supabase**, and a **Next.js dashboard** (Vercel) is th
 engine/      poller, parsers/, collectors/, standalone scrapers, filters
 fetcher/     shared HTTP transport         notifiers/   Discord digests
 config/      JSON fallbacks (Supabase is source of truth)
-dashboard/   Next.js app                   extension/   WXT browser extension
+dashboard/   Next.js app
 deploy/      systemd units + table DDL
 ```
 
