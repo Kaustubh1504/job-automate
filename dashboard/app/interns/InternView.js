@@ -3,6 +3,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
+import { notifyFlag27 } from '../../lib/flag27';
 
 // Centralised intern view: pulls intern roles from every job-board table, merges
 // them into one feed, dedupes across boards, and groups by posting day. This is
@@ -40,14 +41,16 @@ const tsNum = (r) => {
   return t ? Date.parse(t) : 0;
 };
 
-// `titleIncludes` (optional) further narrows to intern titles containing that
-// substring -- used by the /2027 route to show only 2027 internships.
-export default function InternView({ titleIncludes } = {}) {
+// `referredOnly` (optional) narrows to intern roles marked Referral -- used by
+// the /2027 route as a curated Summer 2027 shortlist (checking the Referral box
+// on any tab adds a role here). It defaults to All time + show-applied, since a
+// curated list shouldn't hide picks by recency or applied state.
+export default function InternView({ referredOnly } = {}) {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [sinceHours, setSinceHours] = useState(24);
-  const [hideApplied, setHideApplied] = useState(true);
+  const [sinceHours, setSinceHours] = useState(referredOnly ? null : 24);
+  const [hideApplied, setHideApplied] = useState(!referredOnly);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -69,7 +72,11 @@ export default function InternView({ titleIncludes } = {}) {
 
     const results = await Promise.all(
       BOARDS.map(async (b) => {
-        let q = supabase.from(b.table).select('*').not('dismissed', 'is', true).limit(1000);
+        // The 2027 list keeps flagged roles even after they're dismissed
+        // elsewhere -- the Flag27 tick is the curation, dismiss shouldn't undo it.
+        let q = supabase.from(b.table).select('*').limit(1000);
+        if (referredOnly) q = q.eq('referred', true);
+        else q = q.not('dismissed', 'is', true);
         if (since) {
           q = q.or(`posted_at.gte.${since},and(posted_at.is.null,first_seen.gte.${since})`);
         }
@@ -98,12 +105,11 @@ export default function InternView({ titleIncludes } = {}) {
     setError(errs.length ? errs.join(' · ') : null);
 
     // newest first, then dedupe the same role across boards (company + title).
-    // JobSpy rows must also pass the config title filter (its search is loose).
-    const needle = (titleIncludes || '').toLowerCase();
+    // JobSpy rows must also pass the config title filter (its search is loose) --
+    // unless referredOnly, where an explicit Referral pick overrides the filter.
     const merged = results
       .flatMap((r) => r.rows || [])
-      .filter((r) => r.table !== 'jobspy_jobs' || titleOk(r.title))
-      .filter((r) => !needle || (r.title || '').toLowerCase().includes(needle))
+      .filter((r) => referredOnly || r.table !== 'jobspy_jobs' || titleOk(r.title))
       .sort((a, b) => tsNum(b) - tsNum(a));
     const seen = new Set();
     const deduped = [];
@@ -115,7 +121,7 @@ export default function InternView({ titleIncludes } = {}) {
     }
     setRows(deduped);
     setLoading(false);
-  }, [sinceHours, titleIncludes]);
+  }, [sinceHours, referredOnly]);
 
   useEffect(() => {
     load();
@@ -128,6 +134,8 @@ export default function InternView({ titleIncludes } = {}) {
     if (error) {
       setError(error.message);
       load();
+    } else if (field === 'referred' && value) {
+      notifyFlag27(row);
     }
   }
 
@@ -140,7 +148,8 @@ export default function InternView({ titleIncludes } = {}) {
     }
   }
 
-  const visible = hideApplied ? rows.filter((r) => !r.applied) : rows;
+  const visible = (hideApplied ? rows.filter((r) => !r.applied) : rows)
+    .filter((r) => !referredOnly || r.referred); // unchecking Referral drops it live
 
   return (
     <div>
@@ -165,7 +174,7 @@ export default function InternView({ titleIncludes } = {}) {
           Refresh
         </button>
         <span className="ml-auto text-sm text-gray-500">
-          {loading ? 'Loading…' : `${visible.length} interns across all boards`}
+          {loading ? 'Loading…' : `${visible.length} ${referredOnly ? 'referral picks for Summer 2027' : 'interns across all boards'}`}
         </span>
       </div>
 
@@ -183,7 +192,7 @@ export default function InternView({ titleIncludes } = {}) {
               <th className="px-3 py-2">Posted</th>
               <th className="px-3 py-2">Apply</th>
               <th className="px-3 py-2 text-center">Applied</th>
-              <th className="px-3 py-2 text-center">Referral</th>
+              <th className="px-3 py-2 text-center">Flag27</th>
               <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>
@@ -231,7 +240,11 @@ export default function InternView({ titleIncludes } = {}) {
               </Fragment>
             ))}
             {!loading && visible.length === 0 && (
-              <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">No intern roles match these filters.</td></tr>
+              <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">
+                {referredOnly
+                  ? 'No roles marked for referral yet — tick the Referral box on any role to add it to this Summer 2027 list.'
+                  : 'No intern roles match these filters.'}
+              </td></tr>
             )}
           </tbody>
         </table>

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
+import { notifyFlag27 } from '../../lib/flag27';
 
 // The main `jobs` table view, shared by the /all and /newgrad routes (role prop).
 // Extracted verbatim from the former single-page tab so the two routes reuse one
@@ -93,6 +94,8 @@ export default function JobsTableView({ role }) {
     if (error) {
       setError(error.message);
       load(); // re-sync on failure
+    } else if (field === 'referred' && value) {
+      notifyFlag27(job);
     }
   }
 
@@ -192,7 +195,7 @@ export default function JobsTableView({ role }) {
               <th className="px-3 py-2">Seen</th>
               <th className="px-3 py-2">Apply</th>
               <th className="px-3 py-2 text-center">Applied</th>
-              <th className="px-3 py-2 text-center">Referral</th>
+              <th className="px-3 py-2 text-center">Flag27</th>
               <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>

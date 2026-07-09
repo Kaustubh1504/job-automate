@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import Link from 'next/link';
 import { usePathname, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
+import { notifyFlag27 } from '../../lib/flag27';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 
 // Handshake has its own table (handshake_jobs) with an H1B/OPT sponsorship
@@ -65,6 +66,8 @@ export default function HandshakeView() {
     if (error) {
       setError(error.message);
       load();
+    } else if (field === 'referred' && value) {
+      notifyFlag27(job);
     }
   }
 
@@ -134,7 +137,7 @@ export default function HandshakeView() {
               <th className="px-3 py-2">Posted</th>
               <th className="px-3 py-2">Apply</th>
               <th className="px-3 py-2 text-center">Applied</th>
-              <th className="px-3 py-2 text-center">Referral</th>
+              <th className="px-3 py-2 text-center">Flag27</th>
               <th className="px-3 py-2 w-8"></th>
             </tr>
           </thead>

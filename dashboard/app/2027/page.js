@@ -1,6 +1,8 @@
 import InternView from '../interns/InternView';
 
-// Consolidated intern feed, narrowed to roles with "2027" in the title.
+// Curated Summer 2027 shortlist for a friend: every intern role marked Referral,
+// across all boards. Ticking the Referral box on any tab adds a role here;
+// unticking it removes it.
 export default function Page() {
-  return <InternView titleIncludes="2027" />;
+  return <InternView referredOnly />;
 }
