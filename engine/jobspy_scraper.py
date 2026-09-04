@@ -40,7 +40,6 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import notifiers  # noqa: E402,F401  (importing registers every provider)
 from notifiers.base import get_notifier  # noqa: E402
 import config_store  # noqa: E402  (engine/ -- centralized title-exclude keywords)
-import title_classifier  # noqa: E402  (engine/ -- software-domain title gate + Qwen)
 
 # Per-group scrape settings (each runs as its own jobspy call, per search).
 # LinkedIn is proxied (JOBSPY_PROXIES) so we can pull deep without tripping its
@@ -278,17 +277,12 @@ def main():
             announced.add(k)
             candidates.append(r)
         # Software-domain gate -- the same one run.py applies to the un-scoped
-        # feeds: keyword include/exclude first, then Qwen classifies the ambiguous
-        # rest (cached in title_labels). LinkedIn's fuzzy "software engineer intern"
-        # search leaks non-SWE interns (recruiting, marketing, finance); drop them
-        # so the intern pings stay software-only. Degrades to the keyword decision
-        # when the model is unavailable, so it never blocks the announce.
+        # feeds: keyword include/exclude only. LinkedIn's fuzzy "software
+        # engineer intern" search leaks non-SWE interns (recruiting, marketing,
+        # finance); drop them so the intern pings stay software-only.
         inc, exc = config_store.keywords()
-        labels = title_classifier.classify(
-            [r["title"] for r in candidates
-             if title_classifier.ambiguous(r["title"], inc, exc)])
         fresh = [SimpleNamespace(company=r["company"]) for r in candidates
-                 if title_classifier.keep(r["title"], inc, exc, labels)]
+                 if config_store.wanted(r["title"], inc, exc)]
         print(f"[jobspy] {len(fresh)} new software intern roles since last run", file=sys.stderr)
         try:
             get_notifier("discord")(webhook).send(fresh, header="\U0001f50d **JobSpy** new interns (LinkedIn/Indeed)", path="/jobspy", batch_id=batch_id)
