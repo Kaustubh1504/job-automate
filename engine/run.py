@@ -44,10 +44,11 @@ load_dotenv(find_dotenv())
 RAW = "https://raw.githubusercontent.com"
 
 SOURCES = [
+    # Summer2026-Internships (Simplify + vansh) were renamed in-place on GitHub to
+    # Summer2027-Internships once the 2026 season passed -- same repo, so this URL
+    # already serves 2027 listings via GitHub's raw-content redirect.
     {"name": "simplify-intern", "role_type": "intern", "parser": "simplify_schema",
      "url": f"{RAW}/SimplifyJobs/Summer2026-Internships/dev/.github/scripts/listings.json"},
-    {"name": "vansh-intern", "role_type": "intern", "parser": "simplify_schema",
-     "url": f"{RAW}/vanshb03/Summer2026-Internships/dev/.github/scripts/listings.json"},
     {"name": "vansh-2027-intern", "role_type": "intern", "parser": "simplify_schema",
      "url": f"{RAW}/vanshb03/Summer2027-Internships/dev/.github/scripts/listings.json"},
     {"name": "speedyapply-intern", "role_type": "intern", "parser": "speedyapply",
@@ -101,7 +102,7 @@ YCSTARTUP_SOURCES = [
 # the shared software-domain title filter (config_store.wanted) so only software
 # roles pass. speedyapply-intern is a SWE-only repo and passes untouched.
 FILTERED_SOURCES = {"builtin-engineering", "builtin-aiml", "simplify-newgrad",
-                    "simplify-intern", "vansh-intern", "vansh-2027-intern",
+                    "simplify-intern", "vansh-2027-intern",
                     "vansh-newgrad", "jobhive"}
 
 STATE_FILE = Path(__file__).with_name("state.json")
@@ -164,8 +165,13 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
-    # Discord summarizes INTERN roles only (new-grad is still scraped + stored to
-    # the dashboard, just not announced here). jobright posts its own intern
+    # Discord: intern roles (any source) go to the main webhook/channel. New-grad
+    # roles from the class-of-2027-scoped source only (vansh-newgrad /
+    # New-Grad-2027) go to their OWN dedicated channel/webhook, so the channel
+    # itself tells you which bucket a ping is from -- no need to mix role types
+    # into one digest. simplify-newgrad isn't year-scoped -- it's still scraped +
+    # stored to the dashboard, just not announced anywhere, so a Class-of-2026
+    # posting there doesn't trigger a notification. jobright posts its own intern
     # digest separately (engine/jobright.py).
     webhook = os.environ.get("DISCORD_WEBHOOK_URL")
     if webhook:
@@ -177,6 +183,15 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
                 header=header, color=color, path="/all", batch_id=batch_id)
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
+
+    newgrad_webhook = os.environ.get("DISCORD_NEWGRAD_WEBHOOK_URL")
+    if newgrad_webhook:
+        newgrads = [l for l in new if l.role_type == "newgrad" and l.source == "vansh-newgrad"]
+        try:
+            get_notifier("discord")(newgrad_webhook).send(
+                newgrads, header="\U0001f393 New Grad 2027", path="/newgrad", batch_id=batch_id)
+        except Exception as e:
+            print(f"discord new-grad notify failed: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
