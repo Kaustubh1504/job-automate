@@ -8,12 +8,12 @@ import { usePathname } from 'next/navigation';
 // once in the root layout, it hides itself on non-job pages (e.g. /config).
 const TABS = [
   { href: '/interns', label: 'All Interns' },
+  { href: '/newgrad', label: 'All New Grad' },
   { href: '/all', label: 'All' },
   { href: '/jobright', label: 'Jobright' },
   { href: '/jobspy', label: 'JobSpy' },
   { href: '/handshake', label: 'Handshake' },
   { href: '/wellfound', label: 'Wellfound' },
-  { href: '/newgrad', label: 'New Grad' },
   { href: '/2027', label: '2027' },
 ];
 
