@@ -1,0 +1,17 @@
+[Unit]
+Description=Run the Nokia poll hourly at a randomized 15-25 min offset
+
+[Timer]
+# Base fire time: :15 past every hour, plus RandomizedDelaySec=[0, 600s] on top,
+# so each run lands randomly between :15 and :25 past the hour -- clear of the
+# fast poller (:25-:35), jobhive (:45-:55), nuworks (:00-:10 / :30-:40), and
+# mostly clear of ycstartup (:05-:20). A single lightweight scrape, so hourly
+# is plenty.
+OnCalendar=*-*-* *:15:00
+RandomizedDelaySec=600
+# Catch up a run missed during reboot/downtime.
+Persistent=true
+Unit=job-automate-nokia.service
+
+[Install]
+WantedBy=timers.target

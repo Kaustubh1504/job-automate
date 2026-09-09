@@ -1,0 +1,19 @@
+[Unit]
+Description=Nokia (Oracle Recruiting Cloud) job poll -> Supabase + Discord
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+User=rpi
+Group=rpi
+WorkingDirectory=/home/rpi/job-automate/engine
+EnvironmentFile=/home/rpi/job-automate/.env
+# The "nokia" argument selects ONLY the nokia collector (its own state file).
+ExecStart=/home/rpi/job-automate/.venv/bin/python /home/rpi/job-automate/engine/run.py nokia
+# A run is one paginated Oracle Cloud REST scrape (~seconds); a couple of
+# minutes of headroom is ample.
+TimeoutStartSec=180
+
+# No [Install]: triggered by job-automate-nokia.timer (and runnable on demand
+# with `systemctl start job-automate-nokia.service`).

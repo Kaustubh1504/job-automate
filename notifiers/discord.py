@@ -42,6 +42,19 @@ def _batch(lines, limit):
         yield "\n".join(buf)
 
 
+def _titles(listings, header=None):
+    """Lines listing every new posting's title + direct link, newest-looking
+    first is not tracked -- just source order. Used for single-company feeds
+    (e.g. Nokia) where a per-company count digest would just say one company
+    repeatedly; here the point is to see what each posting actually is."""
+    roles = "role" if len(listings) == 1 else "roles"
+    count_line = f"**{len(listings)} new {roles}**"
+    lines = ([header, count_line] if header else [count_line]) + [""]
+    for l in listings:
+        lines.append(f"• [{l.title}](<{l.url}>)")
+    return lines
+
+
 def _summary(listings, header=None, stats=None, path="/interns", batch_id=None):
     """Lines for a per-company digest: priority companies first, then by count.
     An optional `header` line labels the section (e.g. for a jobright digest).
@@ -73,20 +86,25 @@ class DiscordNotifier:
     def __init__(self, webhook_url):
         self.webhook_url = webhook_url
 
-    def send(self, listings, header=None, stats=None, color=None, path="/interns", batch_id=None):
+    def send(self, listings, header=None, stats=None, color=None, path="/interns",
+             batch_id=None, list_mode=False):
         if not listings:
             return
         # A `color` turns the digest into a colored embed (a card with a side-bar
         # + title) so a high-priority source stands out from the plain-text ones.
         # The digest is small enough to fit one embed (4096-char description cap).
         if color is not None:
-            body = "\n".join(_summary(listings, None, stats, path, batch_id))[:4096]
-            embed = {"description": body, "color": color}
+            # header goes on the embed's title, not repeated in the body.
+            body_lines = _titles(listings) if list_mode \
+                else _summary(listings, None, stats, path, batch_id)
+            embed = {"description": "\n".join(body_lines)[:4096], "color": color}
             if header:
                 embed["title"] = header          # title is inherently bold; pass plain text
             resp = requests.post(self.webhook_url, json={"embeds": [embed]}, timeout=30)
             resp.raise_for_status()
             return
-        for content in _batch(_summary(listings, header, stats, path, batch_id), MAX_CHARS):
+        lines = _titles(listings, header) if list_mode \
+            else _summary(listings, header, stats, path, batch_id)
+        for content in _batch(lines, MAX_CHARS):
             resp = requests.post(self.webhook_url, json={"content": content}, timeout=30)
             resp.raise_for_status()

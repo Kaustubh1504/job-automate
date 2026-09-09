@@ -94,6 +94,15 @@ YCSTARTUP_SOURCES = [
     {"name": "ycstartup", "collector": "ycstartup"},
 ]
 
+# Nokia: a single-company watch (not a domain-scoped feed) -- the user wants
+# every open Nokia posting, any team/seniority, to apply to directly. Deliberately
+# NOT added to FILTERED_SOURCES (no software-domain filter) so it's excluded from
+# both the include-keyword gate below and the exclude/seniority list. Own timer,
+# like NUworks/YCstartup.
+NOKIA_SOURCES = [
+    {"name": "nokia", "collector": "nokia"},
+]
+
 # Built In's boards and the Simplify/vansh listings.json lists aren't
 # software-scoped -- they return every entry-level/new-grad role (sales, nursing,
 # mechanical eng, analysts), and Simplify's own `category` field is unreliable
@@ -104,10 +113,15 @@ FILTERED_SOURCES = {"builtin-engineering", "builtin-aiml", "simplify-newgrad",
                     "simplify-intern", "vansh-2027-intern",
                     "vansh-newgrad", "jobhive"}
 
-STATE_FILE = Path(__file__).with_name("state.json")
-JOBHIVE_STATE_FILE = Path(__file__).with_name("state-jobhive.json")
-NUWORKS_STATE_FILE = Path(__file__).with_name("state-nuworks.json")
-YCSTARTUP_STATE_FILE = Path(__file__).with_name("state-ycstartup.json")
+# A dedicated subdirectory (rather than files sitting next to run.py) so the Pi
+# deploy can tmpfs-mount just this one path -- every poll writes here, and an
+# SD card has a limited write-cycle lifespan.
+STATE_DIR = Path(__file__).with_name("state")
+STATE_FILE = STATE_DIR / "state.json"
+JOBHIVE_STATE_FILE = STATE_DIR / "state-jobhive.json"
+NUWORKS_STATE_FILE = STATE_DIR / "state-nuworks.json"
+YCSTARTUP_STATE_FILE = STATE_DIR / "state-ycstartup.json"
+NOKIA_STATE_FILE = STATE_DIR / "state-nokia.json"
 
 
 def main(sources, state_file, with_stats=False, header=None, color=None, store_all=False):
@@ -159,17 +173,17 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
-    # Discord: intern roles (any source) go to the main webhook/channel. New-grad
-    # roles from the class-of-2027-scoped source only (vansh-newgrad /
-    # New-Grad-2027) go to their OWN dedicated channel/webhook, so the channel
-    # itself tells you which bucket a ping is from -- no need to mix role types
-    # into one digest. simplify-newgrad isn't year-scoped -- it's still scraped +
-    # stored to the dashboard, just not announced anywhere, so a Class-of-2026
-    # posting there doesn't trigger a notification. jobright posts its own intern
-    # digest separately (engine/jobright.py).
+    # Discord: intern roles (any source except nokia, see below) go to the main
+    # webhook/channel. New-grad roles from the class-of-2027-scoped source only
+    # (vansh-newgrad / New-Grad-2027) go to their OWN dedicated channel/webhook,
+    # so the channel itself tells you which bucket a ping is from -- no need to
+    # mix role types into one digest. simplify-newgrad isn't year-scoped -- it's
+    # still scraped + stored to the dashboard, just not announced anywhere, so a
+    # Class-of-2026 posting there doesn't trigger a notification. jobright posts
+    # its own intern digest separately (engine/jobright.py).
     webhook = os.environ.get("DISCORD_WEBHOOK_URL")
     if webhook:
-        interns = [l for l in new if l.role_type == "intern"]
+        interns = [l for l in new if l.role_type == "intern" and l.source != "nokia"]
         try:
             # The jobhive scrape-health line only makes sense on the jobhive run.
             get_notifier("discord")(webhook).send(
@@ -186,6 +200,19 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
                 newgrads, header="\U0001f393 New Grad 2027", path="/newgrad", batch_id=batch_id)
         except Exception as e:
             print(f"discord new-grad notify failed: {e}", file=sys.stderr)
+
+    # Nokia: its own dedicated channel, every new posting regardless of role_type
+    # (any team, any seniority -- see collectors/nokia.py), kept out of the two
+    # blocks above via the `source != "nokia"` / `source == "vansh-newgrad"` guards.
+    nokia_webhook = os.environ.get("DISCORD_NOKIA_WEBHOOK_URL")
+    if nokia_webhook:
+        nokia_jobs = [l for l in new if l.source == "nokia"]
+        try:
+            get_notifier("discord")(nokia_webhook).send(
+                nokia_jobs, header="\U0001f4e1 Nokia", path="/all", batch_id=batch_id,
+                list_mode=True)
+        except Exception as e:
+            print(f"discord nokia notify failed: {e}", file=sys.stderr)
 
 
 if __name__ == "__main__":
@@ -211,6 +238,8 @@ if __name__ == "__main__":
         main(YCSTARTUP_SOURCES, YCSTARTUP_STATE_FILE,
              header="🟧 YC STARTUPS — new intern roles 🟧",
              color=0xFB651E)
+    elif arg == "nokia":
+        main(NOKIA_SOURCES, NOKIA_STATE_FILE)
     else:
         # store_all: the fast poller's repo/board feeds expose their full active
         # set each run, so persist all of it (not just new transitions) to keep the

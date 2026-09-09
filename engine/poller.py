@@ -35,6 +35,7 @@ def _load(path):
 def _save(path, state):
     # Write to a temp file then atomically rename, so a crash mid-write leaves
     # the previous good state.json intact rather than a half-written one.
+    path.parent.mkdir(parents=True, exist_ok=True)
     tmp = path.with_suffix(path.suffix + ".tmp")
     tmp.write_text(json.dumps(state))
     os.replace(tmp, path)
