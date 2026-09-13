@@ -174,13 +174,10 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
             print(f"supabase store failed: {e}", file=sys.stderr)
 
     # Discord: intern roles (any source except nokia, see below) go to the main
-    # webhook/channel. New-grad roles from the class-of-2027-scoped source only
-    # (vansh-newgrad / New-Grad-2027) go to their OWN dedicated channel/webhook,
+    # webhook/channel. New-grad roles go to their OWN dedicated channel/webhook,
     # so the channel itself tells you which bucket a ping is from -- no need to
-    # mix role types into one digest. simplify-newgrad isn't year-scoped -- it's
-    # still scraped + stored to the dashboard, just not announced anywhere, so a
-    # Class-of-2026 posting there doesn't trigger a notification. jobright posts
-    # its own intern digest separately (engine/jobright.py).
+    # mix role types into one digest. jobright posts its own intern digest
+    # separately (engine/jobright.py).
     webhook = os.environ.get("DISCORD_WEBHOOK_URL")
     if webhook:
         interns = [l for l in new if l.role_type == "intern" and l.source != "nokia"]
@@ -192,9 +189,16 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 
+    # Both new-grad feeds notify. vansh-newgrad (New-Grad-2027) is year-scoped by
+    # repo, but went dormant 2026-08-21 -- its newest posting is weeks stale, so
+    # the parser's 24h recency gate yields nothing and the channel went silent.
+    # simplify-newgrad isn't year-scoped across its whole backlog, but notify only
+    # ever sees the last 24h of postings, and a new-grad role posted now targets
+    # the current graduating class -- so recency does the year-scoping in practice.
     newgrad_webhook = os.environ.get("DISCORD_NEWGRAD_WEBHOOK_URL")
     if newgrad_webhook:
-        newgrads = [l for l in new if l.role_type == "newgrad" and l.source == "vansh-newgrad"]
+        newgrads = [l for l in new if l.role_type == "newgrad"
+                    and l.source in ("vansh-newgrad", "simplify-newgrad")]
         try:
             get_notifier("discord")(newgrad_webhook).send(
                 newgrads, header="\U0001f393 New Grad 2027", path="/newgrad", batch_id=batch_id)
