@@ -226,7 +226,7 @@ def main():
     # Discord: announce only the newly-seen interns (everything jobright tracks is
     # an intern role). `existing` is empty/None on the first populated run, so the
     # backlog isn't blasted -- only genuinely new postings after that.
-    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
+    webhook = os.environ.get("DISCORD_INTERN_WEBHOOK_URL")
     if webhook and existing:
         fresh = [SimpleNamespace(company=j["company"]) for (_, _, j) in found.values()
                  if j["id"] not in existing]

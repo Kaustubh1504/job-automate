@@ -307,7 +307,7 @@ def main():
     except Exception as e:
         print(f"[wellfound] store failed (does table 'wellfound_jobs' exist?): {e}", file=sys.stderr)
 
-    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
+    webhook = os.environ.get("DISCORD_INTERN_WEBHOOK_URL")
     if webhook and existing:           # empty/None on first run -> baseline silently
         fresh = [SimpleNamespace(company=r["company"])
                  for r in rows if r["id"] not in existing]

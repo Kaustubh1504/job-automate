@@ -173,12 +173,14 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
-    # Discord: intern roles (any source except nokia, see below) go to the main
-    # webhook/channel. New-grad roles go to their OWN dedicated channel/webhook,
-    # so the channel itself tells you which bucket a ping is from -- no need to
-    # mix role types into one digest. jobright posts its own intern digest
-    # separately (engine/jobright.py).
-    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
+    # Discord: each bucket has its OWN webhook/channel, so the channel itself
+    # tells you which bucket a ping is from -- no need to mix role types into one
+    # digest. Unsetting a webhook silently pauses just that bucket.
+    # DISCORD_INTERN_WEBHOOK_URL is separate from DISCORD_WEBHOOK_URL (which
+    # carries operational alerts only -- session expiry, rate-limit back-off), so
+    # pausing intern digests doesn't also silence those. jobright posts its own
+    # intern digest separately (engine/jobright.py).
+    webhook = os.environ.get("DISCORD_INTERN_WEBHOOK_URL")
     if webhook:
         interns = [l for l in new if l.role_type == "intern" and l.source != "nokia"]
         try:

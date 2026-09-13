@@ -264,7 +264,7 @@ def main():
     # under a new id every few days, so id-keying re-pings the same role every run.
     # The seen-set is empty/None on the first populated run, so the backlog isn't
     # blasted -- only new postings after.
-    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
+    webhook = os.environ.get("DISCORD_INTERN_WEBHOOK_URL")
     if webhook and existing is not None and existing[1]:
         seen = existing[1]
         candidates, announced = [], set()

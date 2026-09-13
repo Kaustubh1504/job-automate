@@ -270,7 +270,7 @@ def main():
     except Exception as e:
         print(f"[handshake] store failed (does table 'handshake_jobs' exist?): {e}", file=sys.stderr)
 
-    webhook = os.environ.get("DISCORD_WEBHOOK_URL")
+    webhook = os.environ.get("DISCORD_INTERN_WEBHOOK_URL")
     if webhook and existing:
         fresh = [SimpleNamespace(company=r["company"]) for r in rows
                  if r["id"] not in existing and r.get("title") and INTERN_RE.search(r["title"])]
