@@ -212,7 +212,7 @@ export default function JobsTableView({ role }) {
                     key={j.id}
                     className={`border-b last:border-0 ${
                       batchId && j.batch_id === batchId
-                        ? 'bg-amber-100 ring-1 ring-inset ring-amber-300'
+                        ? 'bg-amber-100 inset-ring-1 inset-ring-amber-300'
                         : j.priority
                         ? 'bg-amber-50'
                         : ''

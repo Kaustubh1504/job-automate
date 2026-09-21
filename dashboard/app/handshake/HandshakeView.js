@@ -150,7 +150,7 @@ export default function HandshakeView() {
                   </td>
                 </tr>
                 {batch.rows.map((j) => (
-              <tr key={j.id} className={`border-b last:border-0 ${batchId && j.batch_id === batchId ? 'bg-amber-100 ring-1 ring-inset ring-amber-300' : j.sponsors_h1b ? 'bg-green-50' : ''}`}>
+              <tr key={j.id} className={`border-b last:border-0 ${batchId && j.batch_id === batchId ? 'bg-amber-100 inset-ring-1 inset-ring-amber-300' : j.sponsors_h1b ? 'bg-green-50' : ''}`}>
                 <td className="px-3 py-2 font-medium">{j.company}</td>
                 <td className="px-3 py-2">
                   {j.title}
