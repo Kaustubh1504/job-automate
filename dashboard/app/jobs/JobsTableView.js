@@ -6,6 +6,7 @@ import { usePathname, useSearchParams } from 'next/navigation';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 import { notifyFlag27 } from '../../lib/flag27';
+import { INTERN_RE, isNewGrad } from '../../lib/newgrad';
 
 // The main `jobs` table view, shared by the /all and /newgrad routes (role prop).
 // Extracted verbatim from the former single-page tab so the two routes reuse one
@@ -23,18 +24,15 @@ function isNew(job) {
   return job.posted_at && Date.now() - new Date(job.posted_at).getTime() < TWO_HOURS;
 }
 
-const INTERN_RE = /\bintern(ship)?\b/i;
-const NEWGRAD_RE = /\b(new\s?grad(uate)?|early\s?career|entry[-\s]?level|university\s?grad(uate)?|associate engineer)\b/i;
 
 // Bucket a job into intern / newgrad / other. The repo sources encode the role
 // in their name (authoritative); jobhive/live only reveal it via the title.
 function roleOf(job) {
   const src = (job.source || '').toLowerCase();
   if (src.includes('intern')) return 'intern';
-  if (src.includes('newgrad')) return 'newgrad';
-  const t = job.title || '';
-  if (INTERN_RE.test(t)) return 'intern';
-  if (NEWGRAD_RE.test(t)) return 'newgrad';
+  if (INTERN_RE.test(job.title || '')) return 'intern';
+  // Same rule as the /newgrad page (lib/newgrad.js), so the two never disagree.
+  if (isNewGrad(job)) return 'newgrad';
   return 'other';
 }
 
@@ -225,6 +223,16 @@ export default function JobsTableView({ role }) {
                     <td className="px-3 py-2">
                       {j.title}
                       {isNew(j) && <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">NEW</span>}
+                      {j.min_years_exp != null && (
+                        <span
+                          title="Minimum years of experience stated in the job description"
+                          className={`ml-2 rounded px-1.5 py-0.5 text-xs ${
+                            j.min_years_exp <= 3 ? 'bg-blue-100 text-blue-700' : 'bg-gray-100 text-gray-600'
+                          }`}
+                        >
+                          {j.min_years_exp}y
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-gray-600">{j.location || '—'}</td>
                     <td className="px-3 py-2 text-gray-500">{j.source}</td>

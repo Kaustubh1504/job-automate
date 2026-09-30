@@ -25,6 +25,8 @@ import config_store
 import us_location
 from collectors.base import register
 from listing import Listing
+from llm_fit import MAX_JD_CHARS
+from yoe import min_years
 
 MAX_WORKERS = 16            # ~3,300 targets; higher concurrency keeps the run well under its timeout
 JITTER_RANGE = (1.0, 5.0)   # seconds; randomized pause before each company scrape
@@ -65,7 +67,17 @@ def _annual_usd(job):
     return amount * factor if amount and factor else None
 
 
+# Only these reach the fit judge, so only these need their JD carried in memory:
+# a posting that states more than this never gets sent to the model.
+FIT_CANDIDATE_MAX_YEARS = 3
+
+
 def _to_listing(job):
+    years = min_years(job.description)
+    # Internships are bucketed by title and are never New Grad, so a verdict on
+    # one would be a call spent on nothing.
+    candidate = ((years is None or years <= FIT_CANDIDATE_MAX_YEARS)
+                 and "intern" not in job.title.lower())
     return Listing(
         key=f"{job.ats_type.value}:{job.ats_id}",
         company=job.company,
@@ -75,6 +87,12 @@ def _to_listing(job):
         live=True,                          # the ATS only returns currently-open roles
         role_type=_role_type(job.title),
         annual_salary=_annual_usd(job),
+        # The JD text rides along in the fetch we already pay for; we keep the
+        # extracted number, not the description (~5KB/row unstored).
+        min_years_exp=years,
+        # Truncated and candidates-only: the full set is ~40k listings a cycle,
+        # and holding every description would cost ~200MB for nothing.
+        description=(job.description or "")[:MAX_JD_CHARS] if candidate else None,
     )
 
 

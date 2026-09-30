@@ -18,6 +18,7 @@ Env: GITHUB_TOKEN, loaded from a .env file via find_dotenv().
 import dataclasses
 import os
 import sys
+from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timezone
 from pathlib import Path
 
@@ -34,6 +35,8 @@ from notifiers.base import get_notifier  # noqa: E402
 from poller import poll_all  # noqa: E402
 from canonical import canonicalize  # noqa: E402
 from classify import is_priority  # noqa: E402
+import llm_fit  # noqa: E402
+from newgrad import is_newgrad  # noqa: E402
 import config_store  # noqa: E402
 from store import SupabaseStore  # noqa: E402
 from collectors.jobhive import LAST_RUN_STATS as jobhive_stats  # noqa: E402
@@ -124,6 +127,52 @@ YCSTARTUP_STATE_FILE = STATE_DIR / "state-ycstartup.json"
 NOKIA_STATE_FILE = STATE_DIR / "state-nokia.json"
 
 
+# Each judge() call spawns a `claude -p` process (Node), so this is bounded by
+# the Pi's 4 cores and its RAM, not by the API. ~150 calls at ~8s each finishes
+# in a few minutes, well inside the unit's TimeoutStartSec=3600.
+FIT_WORKERS = int(os.environ.get("JOBFIT_WORKERS", "4"))
+
+
+def judge_fit(listings):
+    """Attach Haiku's 0-3yrs verdict to the listings that carry a JD.
+
+    Only jobhive sets `description`, and only for rows whose stated years are
+    unknown or <= 3 (see collectors/jobhive.py), so this is already the narrow
+    set. Every failure leaves the verdict None -- the row still stores.
+    """
+    candidates = [l for l in listings if l.description]
+    if not candidates:
+        return listings
+
+    verdicts = {}
+    with ThreadPoolExecutor(max_workers=FIT_WORKERS) as pool:
+        futures = {
+            pool.submit(llm_fit.judge, l.title, l.company, l.description): l.key
+            for l in candidates
+        }
+        for future in futures:
+            try:
+                verdicts[futures[future]] = future.result()
+            except Exception as e:                      # judge() shouldn't raise
+                print(f"[jobfit] unexpected: {e}", file=sys.stderr)
+
+    judged = sum(1 for v in verdicts.values() if v)
+    print(f"[jobfit] {judged}/{len(candidates)} judged "
+          f"({llm_fit.calls_made()} calls)", file=sys.stderr)
+
+    out = []
+    for l in listings:
+        fit = verdicts.get(l.key)
+        # Drop the JD either way: it must never reach the store.
+        out.append(dataclasses.replace(
+            l,
+            description=None,
+            llm_junior_ok=fit["junior_ok"] if fit else None,
+            llm_reason=fit["reason"] if fit else None,
+        ))
+    return out
+
+
 def main(sources, state_file, with_stats=False, header=None, color=None, store_all=False):
     token = os.environ.get("GITHUB_TOKEN")
     if not token:
@@ -142,6 +191,9 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
         live = [l for l in live if keep(l)]
     # Tag the priority flag once so the store and the Discord summary share it.
     new = [dataclasses.replace(l, priority=is_priority(l)) for l in new]
+    # Then ask the model about the new rows only -- after the gate and after the
+    # state-file dedup, which is what keeps this ~150 calls instead of ~330k.
+    new = judge_fit(new)
 
     # One id for this run: the NEW rows are stamped with it and the Discord link
     # carries it, so clicking the digest highlights exactly this scrape's roles.
@@ -169,7 +221,7 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
                 seen_live = [dataclasses.replace(l, priority=is_priority(l))
                              for l in live if (canonicalize(l.url) or l.key) not in new_keys]
                 store.save(seen_live, batch_id=None)
-            store.save(new, batch_id=batch_id)
+            store.save(new, batch_id=batch_id, fit=True)
         except Exception as e:
             print(f"supabase store failed: {e}", file=sys.stderr)
 
@@ -191,16 +243,19 @@ def main(sources, state_file, with_stats=False, header=None, color=None, store_a
         except Exception as e:
             print(f"discord notify failed: {e}", file=sys.stderr)
 
-    # Both new-grad feeds notify. vansh-newgrad (New-Grad-2027) is year-scoped by
-    # repo, but went dormant 2026-08-21 -- its newest posting is weeks stale, so
-    # the parser's 24h recency gate yields nothing and the channel went silent.
-    # simplify-newgrad isn't year-scoped across its whole backlog, but notify only
-    # ever sees the last 24h of postings, and a new-grad role posted now targets
-    # the current graduating class -- so recency does the year-scoping in practice.
+    # The new-grad feed: both listing repos, Built In's entry-level roles, and the
+    # jobhive roles judged to fit 0-3 years (engine/newgrad.py, which mirrors the
+    # dashboard's rule so the digest and /newgrad show the same jobs).
+    #
+    # vansh-newgrad (New-Grad-2027) is year-scoped by repo, but went dormant
+    # 2026-08-21 -- its newest posting is weeks stale, so the parser's 24h recency
+    # gate yields nothing. simplify-newgrad isn't year-scoped across its whole
+    # backlog, but notify only ever sees the last 24h of postings, and a new-grad
+    # role posted now targets the current graduating class -- so recency does the
+    # year-scoping in practice.
     newgrad_webhook = os.environ.get("DISCORD_NEWGRAD_WEBHOOK_URL")
     if newgrad_webhook:
-        newgrads = [l for l in new if l.role_type == "newgrad"
-                    and l.source in ("vansh-newgrad", "simplify-newgrad")]
+        newgrads = [l for l in new if is_newgrad(l)]
         try:
             get_notifier("discord")(newgrad_webhook).send(
                 newgrads, header="\U0001f393 New Grad 2027", path="/newgrad", batch_id=batch_id)

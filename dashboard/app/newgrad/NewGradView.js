@@ -4,6 +4,7 @@ import { Fragment, useCallback, useEffect, useState } from 'react';
 import { supabase } from '../../lib/supabase';
 import { groupByDay, formatDay, effectiveTs } from '../../lib/batches';
 import { notifyFlag27 } from '../../lib/flag27';
+import { isNewGrad } from '../../lib/newgrad';
 
 // Centralised new-grad view: pulls new-grad roles from every job-board table,
 // merges them into one feed, dedupes across boards, and groups by posting day.
@@ -17,19 +18,12 @@ const SINCE = [
 
 // Each board's table + how to label its "Board" column. The main `jobs` table
 // aggregates many scrapers, so it reports its own per-row source.
+// Jobright and Wellfound are not part of the new-grad definition (see
+// lib/newgrad.js) and have their own tabs, so they aren't queried here.
 const BOARDS = [
   { table: 'jobs', board: (r) => r.source || 'jobs' },
-  { table: 'jobright_jobs', board: () => 'Jobright' },
   { table: 'jobspy_jobs', board: (r) => r.site || 'JobSpy' },
-  { table: 'wellfound_jobs', board: () => 'Wellfound' },
 ];
-
-const NEWGRAD_RE = /\b(new\s?grad(uate)?|early\s?career|entry[-\s]?level|university\s?grad(uate)?|associate engineer)\b/i;
-function isNewGrad(r) {
-  return r.role_type === 'newgrad'
-    || NEWGRAD_RE.test(r.title || '')
-    || (r.source || '').toLowerCase().includes('newgrad');
-}
 
 const TWO_HOURS = 2 * 3600 * 1000;
 function isNew(row) {
@@ -86,6 +80,8 @@ export default function NewGradView() {
           posted_at: r.posted_at,
           first_seen: r.first_seen,
           board: b.board(r),
+          min_years_exp: r.min_years_exp,
+          llm_reason: r.llm_reason,
           applied: r.applied,
           referred: r.referred,
         }));
@@ -203,6 +199,14 @@ export default function NewGradView() {
                     <td className="px-3 py-2">
                       {r.title}
                       {isNew(r) && <span className="ml-2 rounded bg-green-100 px-1.5 py-0.5 text-xs font-medium text-green-700">NEW</span>}
+                      {r.min_years_exp != null && (
+                        <span
+                          title={r.llm_reason || 'Minimum years of experience stated in the job description'}
+                          className="ml-2 rounded bg-blue-100 px-1.5 py-0.5 text-xs text-blue-700"
+                        >
+                          {r.min_years_exp}y
+                        </span>
+                      )}
                     </td>
                     <td className="px-3 py-2 text-gray-600">{r.location || '—'}</td>
                     <td className="px-3 py-2 whitespace-nowrap text-gray-600">{r.salary || '—'}</td>
