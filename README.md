@@ -35,7 +35,7 @@ Results are upserted to **Supabase**, and a **Next.js dashboard** (Vercel) is th
 engine/      poller, parsers/, collectors/, standalone scrapers, filters
 fetcher/     shared HTTP transport         notifiers/   Discord digests
 config/      JSON fallbacks (Supabase is source of truth)
-dashboard/   Next.js app
+dashboard/   Next.js app (job views, config, mailer)
 deploy/      systemd units + table DDL
 ```
 
