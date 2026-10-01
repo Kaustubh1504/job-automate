@@ -136,10 +136,10 @@ FIT_WORKERS = int(os.environ.get("JOBFIT_WORKERS", "4"))
 def judge_fit(listings):
     """Attach Haiku's 0-3yrs verdict to the listings that carry a JD.
 
-    Only jobhive sets `description`, and only for rows that are worth a call --
-    stated years unknown or within the bar, not an internship, and not a posting
-    that refuses sponsorship (see collectors/jobhive.py). Every failure leaves
-    the verdict as it was; the row still stores.
+    Only jobhive sets `description`, and only for rows worth a call -- stated
+    years unknown or within the bar, and not an internship (see
+    collectors/jobhive.py). Every failure leaves the verdict as it was; the row
+    still stores.
     """
     candidates = [l for l in listings if l.description]
     if not candidates:
@@ -165,9 +165,9 @@ def judge_fit(listings):
     out = []
     for l in listings:
         fit = verdicts.get(l.key)
-        # Drop the JD either way: it must never reach the store. Where there is no
-        # verdict, keep whatever the listing already carried -- the collector
-        # settles no-sponsorship roles itself, and that must not be overwritten.
+        # Drop the JD either way: it must never reach the store. Where there is
+        # no verdict, keep whatever the listing already carried rather than
+        # blanking a value some other stage set.
         out.append(dataclasses.replace(
             l,
             description=None,
