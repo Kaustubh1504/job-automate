@@ -26,6 +26,8 @@ import us_location
 from collectors.base import register
 from listing import Listing
 from llm_fit import MAX_JD_CHARS
+from newgrad import MAX_YEARS_EXP
+from sponsorship import blocks_sponsorship
 from yoe import min_years
 
 MAX_WORKERS = 16            # ~3,300 targets; higher concurrency keeps the run well under its timeout
@@ -67,16 +69,16 @@ def _annual_usd(job):
     return amount * factor if amount and factor else None
 
 
-# Only these reach the fit judge, so only these need their JD carried in memory:
-# a posting that states more than this never gets sent to the model.
-FIT_CANDIDATE_MAX_YEARS = 3
-
-
 def _to_listing(job):
     years = min_years(job.description)
-    # Internships are bucketed by title and are never New Grad, so a verdict on
-    # one would be a call spent on nothing.
-    candidate = ((years is None or years <= FIT_CANDIDATE_MAX_YEARS)
+    # An explicit refusal to sponsor settles it without a model call, the way
+    # jobright drops an explicit H1B "No". Silence is not a refusal.
+    no_sponsorship = blocks_sponsorship(job.description)
+    # Only these reach the fit judge, so only these carry their JD in memory: a
+    # posting stating more than the bar, an internship (bucketed by title, never
+    # New Grad), or one that won't sponsor is not worth a call.
+    candidate = ((years is None or years <= MAX_YEARS_EXP)
+                 and not no_sponsorship
                  and "intern" not in job.title.lower())
     return Listing(
         key=f"{job.ats_type.value}:{job.ats_id}",
@@ -93,6 +95,10 @@ def _to_listing(job):
         # Truncated and candidates-only: the full set is ~40k listings a cycle,
         # and holding every description would cost ~200MB for nothing.
         description=(job.description or "")[:MAX_JD_CHARS] if candidate else None,
+        # Decided here rather than by the model, so it survives a run with no
+        # login and shows up in the dashboard with its reason.
+        llm_junior_ok=False if no_sponsorship else None,
+        llm_reason="No sponsorship: the posting rules it out" if no_sponsorship else None,
     )
 
 

@@ -8,8 +8,9 @@ a column and having the dashboard read it; not done yet.)
     GitHub repos  -- the two new-grad listing repos (the intern repos are not)
     Built In      -- its search URL is filtered to internship + entry-level, so
                      a non-intern title from it is entry-level by construction
-    jobhive       -- Claude's 0-3yrs verdict (engine/llm_fit.py), falling back to
-                     the years engine/yoe.py read out of the JD when unjudged
+    jobhive       -- Claude's eligibility verdict (engine/llm_fit.py), falling
+                     back to the years engine/yoe.py read out of the JD when
+                     unjudged. Roles that refuse visa sponsorship are out.
 
 An intern title is excluded first, whatever the source said: internships have
 their own digest and their own tab.
@@ -20,7 +21,7 @@ from jobspy, which runs in a different service and notifies separately.
 
 import re
 
-MAX_YEARS_EXP = 3
+MAX_YEARS_EXP = 2
 
 NEWGRAD_REPOS = {"simplify-newgrad", "vansh-newgrad"}
 

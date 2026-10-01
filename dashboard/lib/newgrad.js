@@ -7,14 +7,15 @@
 // An intern title is excluded up front, whatever the source said.
 //   LinkedIn      -- JobSpy's linkedin rows that the scraper bucketed as newgrad
 //                    (jobspy_jobs carries its own role_type; `jobs` does not)
-//   jobhive       -- roles Claude Haiku judged suitable for 0-3 years of
-//                    experience (engine/llm_fit.py), falling back to the years
-//                    engine/yoe.py read out of the JD when it wasn't judged
+//   jobhive       -- roles Claude judged this candidate eligible for
+//                    (engine/llm_fit.py); roles refusing visa sponsorship are
+//                    excluded there. Falls back to the years engine/yoe.py read
+//                    out of the JD when a row wasn't judged.
 //
 // Anything else -- intern repos, Jobright, Wellfound, Nokia, Handshake -- has
 // its own tab and is deliberately not folded in here.
 
-export const MAX_YEARS_EXP = 3;
+export const MAX_YEARS_EXP = 2;
 
 // Interns have their own tab, so they never count as New Grad no matter how a
 // source labels them. Exported so the job table buckets on the same regex.

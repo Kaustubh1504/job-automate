@@ -40,6 +40,8 @@ import sys
 import tempfile
 import threading
 
+from newgrad import MAX_YEARS_EXP
+
 CLI = os.environ.get("JOBFIT_CLI", "claude")
 MODEL = os.environ.get("JOBFIT_MODEL", "haiku")
 
@@ -56,35 +58,51 @@ SCHEMA = json.dumps({
     "properties": {
         "junior_ok": {"type": "boolean"},
         "min_years": {"type": ["integer", "null"]},
+        "sponsorship_ok": {"type": "boolean"},
         "reason": {"type": "string"},
     },
-    "required": ["junior_ok", "min_years", "reason"],
+    "required": ["junior_ok", "min_years", "sponsorship_ok", "reason"],
     "additionalProperties": False,
 }, sort_keys=True)
+
+# Given to the model so it can rule on postings that state no number -- plenty of
+# big-company JDs (Apple among them) never do, and "no years stated" is not the
+# same as "not eligible".
+CANDIDATE_PROFILE = (
+    "- Master's degree in Computer Science\n"
+    "- About 1 year of professional software experience\n"
+    "- Two software engineering internships\n"
+    "- Part-time research assistantship"
+)
 
 # Spelled out because the first version of this prompt marked a "2+ years" role
 # junior_ok=false -- the model read "0-3 years" as "no experience at all" unless
 # the boundary is stated as an explicit rule.
 SYSTEM = (
-    "You screen software job postings for a candidate with 0-3 years of professional "
-    "experience (recent graduate or early career).\n\n"
-    "Decide junior_ok by this rule, in order:\n"
-    "1. If the posting requires MORE than 3 years of experience, junior_ok is false.\n"
+    "You screen software job postings for one specific candidate, who has:\n"
+    f"{CANDIDATE_PROFILE}\n\n"
+    "Set junior_ok by these rules, in order:\n"
+    f"1. If the posting requires MORE than {MAX_YEARS_EXP} years of experience, false.\n"
     "2. If the title is senior, staff, principal, lead, architect, director, or a "
-    "management role, junior_ok is false.\n"
-    "3. If it requires a PhD or deep specialisation a recent graduate could not have, "
-    "junior_ok is false.\n"
-    "4. Otherwise junior_ok is TRUE. This includes postings requiring 1, 2, or 3 years, "
-    "and postings that state no experience requirement at all. A role asking for 2 or 3 "
-    "years IS acceptable -- do not reject it for not being zero.\n\n"
-    "min_years is the lowest number of years the posting requires, or null if it never "
-    "states one. Do not infer a number that is not written down.\n\n"
-    "Judge only what the posting says. reason must be at most 100 characters."
+    "management role, false.\n"
+    "3. If it requires a PhD, or deep specialisation this candidate could not have, "
+    "false.\n"
+    "4. If the posting says it will not sponsor a visa, or requires US citizenship or "
+    "a security clearance, set sponsorship_ok false AND junior_ok false.\n"
+    "5. If the location is outside the United States, false. US locations and remote "
+    "roles within the US are fine.\n"
+    "6. If the posting states NO experience requirement, decide whether this "
+    "candidate would plausibly be considered, given the profile above. A master's "
+    "degree plus internships and a year of work is a credible early-career "
+    "background, so a general software engineering role with no stated bar is true.\n"
+    f"7. Otherwise ({MAX_YEARS_EXP} years or fewer, no blockers), true.\n\n"
+    "min_years is the lowest number of years the posting requires, or null if it "
+    "never states one. Do not infer a number that is not written down.\n\n"
+    "sponsorship_ok is false ONLY if the posting explicitly refuses sponsorship or "
+    "requires citizenship; silence means true.\n\n"
+    "Judge only what the posting says. reason must be at most 100 characters.\n"
 )
 
-# Reentrant: the ceiling check calls _disable() while holding the lock, and a
-# plain Lock deadlocks there -- which froze the poll precisely when the call
-# ceiling was reached, until systemd's timeout killed the run.
 _lock = threading.RLock()
 _calls = 0
 _failures = 0
@@ -129,7 +147,7 @@ def _note_success():
         _failures = 0
 
 
-def judge(title, company, description):
+def judge(title, company, location, description):
     """{"junior_ok": bool, "min_years": int|None, "reason": str} or None.
 
     None means "not judged" -- it never means "not a fit"; callers must treat it
@@ -148,7 +166,8 @@ def judge(title, company, description):
 
     prompt = (
         f"Title: {title}\n"
-        f"Company: {company}\n\n"
+        f"Company: {company}\n"
+        f"Location: {location or 'not stated'}\n\n"
         f"Job description:\n{description[:MAX_JD_CHARS]}"
     )
 
@@ -215,10 +234,19 @@ def judge(title, company, description):
 
     _note_success()
     years = fit.get("min_years")
+    reason = str(fit.get("reason") or "")[:180]
+    # A role that won't sponsor is not a fit however junior it is, and the stored
+    # reason has to say which of the two it was.
+    sponsorship_ok = fit.get("sponsorship_ok")
+    junior_ok = bool(fit["junior_ok"])
+    if sponsorship_ok is False:
+        junior_ok = False
+        if "sponsor" not in reason.lower() and "citizen" not in reason.lower():
+            reason = f"No sponsorship: {reason}"
     return {
-        "junior_ok": bool(fit["junior_ok"]),
+        "junior_ok": junior_ok,
         "min_years": years if isinstance(years, int) else None,
-        "reason": str(fit.get("reason") or "")[:200],
+        "reason": reason[:200],
     }
 
 
